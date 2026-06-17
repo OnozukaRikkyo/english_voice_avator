@@ -50,6 +50,7 @@ HEYGEN_BASE_URL  = "https://api.heygen.com"
 HEYGEN_AVATAR_ID = os.environ.get("HEYGEN_AVATAR_ID", "")
 HEYGEN_VOICE_ID  = os.environ.get("HEYGEN_VOICE_ID", "")
 HEYGEN_RATIO     = "16:9"
+HEYGEN_CAPTION   = False   # disable on-screen captions
 
 # ── Pipeline stages ───────────────────────────────────────────────────────────
 # Ordered list — the ORDER defines the pipeline sequence.

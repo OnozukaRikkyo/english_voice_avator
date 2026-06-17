@@ -6,7 +6,7 @@ import requests
 
 from .config import (
     HEYGEN_API_KEY, HEYGEN_BASE_URL,
-    HEYGEN_AVATAR_ID, HEYGEN_VOICE_ID, HEYGEN_RATIO,
+    HEYGEN_AVATAR_ID, HEYGEN_VOICE_ID, HEYGEN_RATIO, HEYGEN_CAPTION,
     stage_dir, parts_dir, all_projects, STEP_IO,
 )
 
@@ -50,6 +50,7 @@ def create_video(
             "background": {"type": "color", "value": "#008000"},
         }],
         "aspect_ratio": ratio,
+        "caption": HEYGEN_CAPTION,
         "test": False,
     }
     resp = requests.post(
