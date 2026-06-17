@@ -57,7 +57,9 @@ def create_video(
         headers={**_HEADERS(), "Content-Type": "application/json"},
         json=payload, timeout=60,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        err = (resp.json().get("error") or {})
+        raise RuntimeError(f"HeyGen {resp.status_code}: {err.get('code')} — {err.get('message')}")
     video_id = resp.json()["data"]["video_id"]
     print(f"    video_id: {video_id}")
     return video_id

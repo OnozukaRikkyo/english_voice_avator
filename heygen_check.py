@@ -36,15 +36,41 @@ def check_configured() -> None:
     print(f"  HEYGEN_AVATAR_ID : {HEYGEN_AVATAR_ID or '(not set)'}")
     print(f"  HEYGEN_VOICE_ID  : {HEYGEN_VOICE_ID or '(not set)'}")
 
-    # Avatar
+    # Avatar — search public list, instant avatars, and talking photos
     if HEYGEN_AVATAR_ID:
+        found = False
+
+        # 1. Public avatars
         data = _get("/v2/avatars")
         avatars = data.get("data", {}).get("avatars", [])
         match = next((a for a in avatars if a.get("avatar_id") == HEYGEN_AVATAR_ID), None)
         if match:
-            print(f"  ✓ Avatar found : {match.get('avatar_name')} (gender={match.get('gender', '-')})")
-        else:
-            print(f"  ? Avatar not in public list (may be a custom/personal avatar)")
+            print(f"  ✓ Avatar found (public) : {match.get('avatar_name')} (gender={match.get('gender', '-')})")
+            found = True
+
+        # 2. Instant / custom avatars (v1)
+        if not found:
+            try:
+                data2 = _get("/v1/instant_avatar.list")
+                inst = (data2.get("data") or {}).get("avatars", [])
+                match2 = next((a for a in inst if a.get("avatar_id") == HEYGEN_AVATAR_ID), None)
+                if match2:
+                    print(f"  ✓ Avatar found (instant): {match2.get('avatar_name')}")
+                    found = True
+            except Exception:
+                pass
+
+        # 3. Talking photos / photo avatars
+        if not found:
+            talking = data.get("data", {}).get("talking_photos", [])
+            match3 = next((t for t in talking if t.get("talking_photo_id") == HEYGEN_AVATAR_ID), None)
+            if match3:
+                print(f"  ✓ Avatar found (talking photo): {match3.get('talking_photo_name')}")
+                found = True
+
+        if not found:
+            print(f"  ✗ Avatar ID not found in public list, instant avatars, or talking photos.")
+            print(f"    → HeyGen ダッシュボード My Avatars でIDを確認してください")
 
     # Voice
     if HEYGEN_VOICE_ID:
