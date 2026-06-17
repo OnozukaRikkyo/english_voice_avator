@@ -1,0 +1,27 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment
+.env
+
+# IDE
+.idea/
+
+# Data (media + generated — store locally, not in git)
+data/input/
+data/eng_mp3/
+data/eng_text/
+data/eng_split/
+data/regen_mp3/
+data/voice_concat/
+data/concat_text/
+data/avatar_video/
+
+# OS
+.DS_Store
+Thumbs.db
