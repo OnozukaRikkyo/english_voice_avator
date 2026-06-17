@@ -60,8 +60,8 @@ def main() -> None:
             t1 = time.time()
 
             if step == "convert":
-                from pipeline import audio_convert
-                audio_convert.run(project)
+                from pipeline import convert
+                convert.run(project)
 
             elif step == "transcribe":
                 from pipeline import transcribe
