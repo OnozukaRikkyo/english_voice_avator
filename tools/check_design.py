@@ -8,8 +8,9 @@ Design rules enforced:
   1. Intermediate part files (_part*.txt / _part*.mp4) must live in
      a `parts/` subdirectory, NOT directly in the stage directory.
   2. Final outputs live directly in the stage directory:
-       narration/{stem}_full.txt
-       video/{stem}.mp4
+       narration/{stem}_full.txt    ← concat_narration output
+       translation/{stem}_ja.txt   ← translate output (no parts/ needed)
+       video/{stem}.mp4             ← concat_video output
   3. No stale flat-layout directories (eng_mp3/, eng_text/, etc.) should exist.
 
 Exit code: 0 = OK, 1 = violations found.

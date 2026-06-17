@@ -6,10 +6,11 @@ Usage:
                          [--force] [--max-chars N]
 
 Steps (default: all):
-  convert    raw/       → audio/
-  transcribe audio/     → transcript/
-  rewrite    transcript/→ narration/
-  heygen     narration/ → video/
+  convert    raw/        → audio/
+  transcribe audio/      → transcript/
+  rewrite    transcript/ → narration/
+  translate  narration/  → translation/   (English → Japanese)
+  heygen     narration/  → video/
 
 Flags:
   --force          Force re-run even if output files already exist.
@@ -25,7 +26,7 @@ import time
 from pipeline.config import all_projects, ensure_project_dirs
 
 
-ALL_STEPS = ["convert", "transcribe", "rewrite", "heygen"]
+ALL_STEPS = ["convert", "transcribe", "rewrite", "translate", "heygen"]
 
 
 def main() -> None:
@@ -93,6 +94,10 @@ def main() -> None:
             elif step == "rewrite":
                 from pipeline import rewrite
                 rewrite.run(project, force=args.force, max_chars=args.max_chars)
+
+            elif step == "translate":
+                from pipeline import translate
+                translate.run(project, force=args.force)
 
             elif step == "heygen":
                 from pipeline import heygen

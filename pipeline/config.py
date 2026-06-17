@@ -4,11 +4,14 @@ Data layout
 -----------
 data/
   {project}/
-    raw/         raw input files  (m4a / mp4 / mp3)
-    audio/       converted mp3
-    transcript/  English transcription (Gemini)
-    narration/   rewritten YouTube script (Gemini)
-    video/       avatar video mp4 (HeyGen)
+    raw/          raw input files  (m4a / mp4 / mp3)
+    audio/        converted mp3
+    transcript/   English transcription (Gemini)
+    narration/    rewritten YouTube narration (_full.txt = final)
+      parts/      split segments (_part*.txt) — heygen input
+    translation/  Japanese translation of narration (_ja.txt)
+    video/        avatar video mp4 (final .mp4)
+      parts/      per-segment videos (_part*.mp4) — heygen output
 
 Adding a new step
 -----------------
@@ -32,9 +35,10 @@ MINIMAX_API_KEY = os.environ["MINIMAX_API_KEY"]
 HEYGEN_API_KEY  = os.environ.get("HEYGEN_API_KEY", "")
 
 # ── Model / service constants ─────────────────────────────────────────────────
-GEMINI_TRANSCRIBE_MODEL = "gemini-2.5-flash"
-GEMINI_REWRITE_MODEL    = "gemini-3.5-flash"
-REWRITE_MAX_CHARS       = -1   # -1 = unlimited (one output file)
+GEMINI_TRANSCRIBE_MODEL  = "gemini-2.5-flash"
+GEMINI_REWRITE_MODEL     = "gemini-3.5-flash"
+GEMINI_TRANSLATE_MODEL   = "gemini-2.5-flash"
+REWRITE_MAX_CHARS        = -1   # -1 = unlimited (one output file)
 
 MINIMAX_TTS_URL   = "https://api.minimax.io/v1/t2a_v2"
 MINIMAX_VOICE_ID  = "moss_audio_10fc0153-4b51-11f1-8d50-22f63c968931"
@@ -52,28 +56,33 @@ HEYGEN_RATIO     = "16:9"
 # To insert a step: add the stage name here in the right position.
 # Directory names are stable; insertion never requires renaming.
 STAGES: list[str] = [
-    "raw",         # source input files
-    "audio",       # converted mp3
-    "transcript",  # English transcription
-    "narration",   # rewritten YouTube narration script
-    "video",       # avatar video (mp4)
+    "raw",          # source input files
+    "audio",        # converted mp3
+    "transcript",   # English transcription
+    "narration",    # rewritten YouTube narration script
+    "translation",  # Japanese translation of narration
+    "video",        # avatar video (mp4)
 ]
 
 # Human-readable label for each stage (used in generated docs)
 STAGE_LABELS: dict[str, str] = {
-    "raw":        "Raw input (m4a / mp4 / mp3)",
-    "audio":      "Converted audio (mp3)",
-    "transcript": "English transcript",
-    "narration":  "Narration script (YouTube style, Gemini 3.5 Flash)",
-    "video":      "Avatar video (mp4, HeyGen)",
+    "raw":         "Raw input (m4a / mp4 / mp3)",
+    "audio":       "Converted audio (mp3)",
+    "transcript":  "English transcript",
+    "narration":   "Narration script (YouTube style, Gemini 3.5 Flash)",
+    "translation": "Japanese translation of narration (Gemini 2.5 Flash)",
+    "video":       "Avatar video (mp4, HeyGen)",
 }
 
 # step_name → (input_stage, output_stage)
-# This is the single definition of what each pipeline step reads and writes.
+# Note: translate and heygen both read from narration/ but different files:
+#   translate → reads narration/{stem}_full.txt
+#   heygen    → reads narration/parts/{stem}_part*.txt
 STEP_IO: dict[str, tuple[str, str]] = {
     "convert":    ("raw",        "audio"),
     "transcribe": ("audio",      "transcript"),
     "rewrite":    ("transcript", "narration"),
+    "translate":  ("narration",  "translation"),
     "heygen":     ("narration",  "video"),
 }
 
