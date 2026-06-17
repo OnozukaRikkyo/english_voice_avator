@@ -24,6 +24,8 @@ tools/gen_spec.py will automatically regenerate CLAUDE.md.
 Stage insertion does NOT require renaming existing directories.
 """
 import os
+import re
+import unicodedata
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -95,6 +97,29 @@ DATA = ROOT / "data"
 # Final outputs (e.g. _full.txt, .mp4) live directly in the stage dir.
 # Rule: never put _part* files directly in a stage dir — always use parts/.
 PARTS_SUBDIR = "parts"
+
+
+def slugify(stem: str) -> str:
+    """Convert an audio filename stem to a safe ASCII project slug.
+
+    Rules:
+      - Unicode normalization (NFKD) then drop non-ASCII bytes
+      - Replace runs of non-word characters with _
+      - Strip leading/trailing underscores
+      - If result is empty (fully non-ASCII stem), use hex hash as fallback
+
+    Examples:
+      "Russia’s_Seventeen_Kilometer_Map_Lie" → "Russias_Seventeen_Kilometer_Map_Lie"
+      "NATO Summit June-2026"                      → "NATO_Summit_June_2026"
+      "中東情勢レポート"                            → "a3f2b1c4"  (hash fallback)
+    """
+    normalized = unicodedata.normalize("NFKD", stem)
+    ascii_only = normalized.encode("ascii", "ignore").decode("ascii")
+    safe = re.sub(r"[^\w]+", "_", ascii_only).strip("_")
+    if not safe:
+        import hashlib
+        safe = hashlib.md5(stem.encode()).hexdigest()[:8]
+    return safe
 
 
 def stage_dir(project: str, stage: str) -> Path:

@@ -26,48 +26,68 @@ LEGACY_DIRS = {"input", "eng_mp3", "eng_text", "eng_split",
                "regen_mp3", "avatar_video", "concat_text", "voice_concat"}
 
 
-def check() -> list[str]:
+def check() -> tuple[list[str], list[str]]:
+    """Returns (violations, warnings).
+
+    violations → exit 1  (must fix: misplaced files, legacy dirs)
+    warnings   → exit 0  (should fix eventually: non-ASCII slugs)
+    """
     violations: list[str] = []
+    warnings: list[str] = []
 
     if not DATA.exists():
-        return violations
+        return violations, warnings
 
     for project_dir in sorted(DATA.iterdir()):
         if not project_dir.is_dir():
             continue
         project = project_dir.name
 
-        # Rule: no legacy flat directories
+        # Hard violation: legacy flat-layout directories must not exist
         if project in LEGACY_DIRS:
             violations.append(
                 f"[LEGACY] data/{project}/ is a stale flat-layout directory — remove it"
             )
             continue
 
-        # Check each stage for misplaced part files
-        for stage in ("narration", "video"):
-            stage_dir = project_dir / stage
-            if not stage_dir.exists():
-                continue
+        # Warning: project slug should be ASCII-safe
+        # Existing non-ASCII projects cannot be renamed, so this is non-blocking.
+        # New projects must be created via: python tools/new_project.py <audio_file>
+        try:
+            project.encode("ascii")
+        except UnicodeEncodeError:
+            warnings.append(
+                f"[NON-ASCII] data/{project}/ — slug has non-ASCII chars. "
+                f"Future projects: use python tools/new_project.py <audio_file>"
+            )
 
+        # Hard violation: part files must live in stage/parts/, not stage/ directly
+        for stage in ("narration", "video"):
+            stage_path = project_dir / stage
+            if not stage_path.exists():
+                continue
             ext = "txt" if stage == "narration" else "mp4"
-            for f in stage_dir.glob(f"*_part*.{ext}"):
+            for f in stage_path.glob(f"*_part*.{ext}"):
                 violations.append(
                     f"[MISPLACED] {f.relative_to(ROOT)} — "
                     f"part files must be in {stage}/parts/, not in {stage}/ directly"
                 )
 
-    return violations
+    return violations, warnings
 
 
 def main() -> None:
-    violations = check()
+    violations, warnings = check()
+    if warnings:
+        print("⚠ Design warnings:", file=sys.stderr)
+        for w in warnings:
+            print(f"  {w}", file=sys.stderr)
     if violations:
-        print("⚠ Design violations detected:", file=sys.stderr)
+        print("✗ Design violations (must fix):", file=sys.stderr)
         for v in violations:
             print(f"  {v}", file=sys.stderr)
         sys.exit(1)
-    # Silent on success — hook runs after every edit, noise is unwanted
+    # Silent on clean success
 
 
 if __name__ == "__main__":
