@@ -39,6 +39,11 @@
             "type": "command",
             "command": "cd /home/sonozuka/english_voice/avator && .venv/bin/python tools/gen_spec.py 2>/dev/null || true",
             "statusMessage": "Regenerating CLAUDE.md..."
+          },
+          {
+            "type": "command",
+            "command": "cd /home/sonozuka/english_voice/avator && .venv/bin/python tools/check_design.py",
+            "statusMessage": "Checking data layout..."
           }
         ]
       }

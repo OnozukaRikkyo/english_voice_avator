@@ -81,10 +81,20 @@ STEP_IO: dict[str, tuple[str, str]] = {
 ROOT = Path(__file__).parent.parent
 DATA = ROOT / "data"
 
+# Intermediate split files (e.g. _part01.txt) live here, inside their stage dir.
+# Final outputs (e.g. _full.txt, .mp4) live directly in the stage dir.
+# Rule: never put _part* files directly in a stage dir — always use parts/.
+PARTS_SUBDIR = "parts"
+
 
 def stage_dir(project: str, stage: str) -> Path:
     """Return the data directory for a given project and stage name."""
     return DATA / project / stage
+
+
+def parts_dir(project: str, stage: str) -> Path:
+    """Return the parts/ subdirectory for intermediate split files within a stage."""
+    return stage_dir(project, stage) / PARTS_SUBDIR
 
 
 def all_projects() -> list[str]:

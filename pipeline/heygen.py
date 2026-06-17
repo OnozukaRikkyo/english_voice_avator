@@ -7,7 +7,7 @@ import requests
 from .config import (
     HEYGEN_API_KEY, HEYGEN_BASE_URL,
     HEYGEN_AVATAR_ID, HEYGEN_VOICE_ID, HEYGEN_RATIO,
-    stage_dir, all_projects, STEP_IO,
+    stage_dir, parts_dir, all_projects, STEP_IO,
 )
 
 _IN, _OUT = STEP_IO["heygen"]
@@ -107,10 +107,14 @@ def run(project: str, *, force: bool = False) -> list[Path]:
         print("  [skip] HEYGEN_API_KEY not set")
         return []
 
-    src_dir = stage_dir(project, _IN)
-    dst_dir = stage_dir(project, _OUT)
+    src_dir = parts_dir(project, _IN)   # ← reads from narration/parts/
+    dst_dir = parts_dir(project, _OUT)  # ← writes to video/parts/
     dst_dir.mkdir(parents=True, exist_ok=True)
     results: list[Path] = []
+
+    if not src_dir.exists() or not list(src_dir.glob("*.txt")):
+        print(f"  [skip] no parts found in {src_dir.relative_to(src_dir.parent.parent.parent)}")
+        return []
 
     for txt in sorted(src_dir.glob("*.txt")):
         out = dst_dir / (txt.stem + ".mp4")
