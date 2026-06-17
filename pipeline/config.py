@@ -20,7 +20,7 @@ MINIMAX_MAX_CHARS = 5000
 
 # ── Gemini models ─────────────────────────────────────────────────────────────
 GEMINI_TRANSCRIBE_MODEL = "gemini-2.5-flash"
-GEMINI_REWRITE_MODEL = "gemini-2.5-pro-preview-06-05"
+GEMINI_REWRITE_MODEL = "gemini-3.5-flash"
 REWRITE_MAX_CHARS = 4000
 
 # ── HeyGen ────────────────────────────────────────────────────────────────────
