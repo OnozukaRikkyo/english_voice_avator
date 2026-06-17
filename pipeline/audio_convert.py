@@ -1,39 +1,48 @@
-"""Audio format conversion: m4a/mp4 → mp3 via ffmpeg."""
+"""Stage raw→audio: m4a/mp4/mp3 → converted mp3."""
+import shutil
 import subprocess
 from pathlib import Path
 
-from .config import DIR_INPUT, DIR_ENG_MP3
+from .config import stage_dir, all_projects, STEP_IO
+
+_IN, _OUT = STEP_IO["convert"]
 
 
-def _convert(src: Path, dst: Path) -> None:
-    subprocess.run(
-        ["ffmpeg", "-y", "-i", str(src), "-codec:a", "libmp3lame", "-q:a", "2", str(dst)],
-        check=True, capture_output=True,
-    )
+def _to_mp3(src: Path, dst: Path) -> None:
+    if src.suffix.lower() == ".mp3":
+        shutil.copy2(src, dst)
+    else:
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(src), "-codec:a", "libmp3lame", "-q:a", "2", str(dst)],
+            check=True, capture_output=True,
+        )
 
 
-def run() -> list[Path]:
-    DIR_ENG_MP3.mkdir(parents=True, exist_ok=True)
-    converted: list[Path] = []
+def run(project: str) -> list[Path]:
+    src_dir = stage_dir(project, _IN)
+    dst_dir = stage_dir(project, _OUT)
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    results: list[Path] = []
 
-    for ext in ("*.m4a", "*.mp4", "*.mp3"):
-        for src in sorted(DIR_INPUT.glob(ext)):
-            dst = DIR_ENG_MP3 / (src.stem + ".mp3")
-            if dst.exists():
-                print(f"  [skip] {dst.name} already exists")
-                converted.append(dst)
-                continue
-            if src.suffix.lower() == ".mp3":
-                import shutil
-                shutil.copy2(src, dst)
-            else:
-                print(f"  Converting: {src.name} → {dst.name}")
-                _convert(src, dst)
-            print(f"  → {dst}")
-            converted.append(dst)
+    for src in sorted(src_dir.glob("*")):
+        if src.suffix.lower() not in (".m4a", ".mp4", ".mp3"):
+            continue
+        dst = dst_dir / (src.stem + ".mp3")
+        if dst.exists():
+            print(f"  [skip] {dst.name}")
+        else:
+            print(f"  {src.name} → {dst.name}")
+            _to_mp3(src, dst)
+        results.append(dst)
 
-    return converted
+    return results
+
+
+def run_all() -> None:
+    for project in all_projects():
+        print(f"\n[{project}] convert")
+        run(project)
 
 
 if __name__ == "__main__":
-    run()
+    run_all()

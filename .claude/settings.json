@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip3 --version)",
+      "Bash(gh --version)",
+      "Bash(git --version)",
+      "Bash(python3.12 --version)",
+      "Bash(python3.11 --version)",
+      "Bash(python3.10 --version)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/pip freeze *)",
+      "Bash(git init *)",
+      "Bash(git config *)",
+      "Bash(git branch *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(.venv/bin/python3 -c ' *)",
+      "Bash(.venv/bin/python3 run_pipeline.py --help)",
+      "Bash(.venv/bin/python run_pipeline.py --steps convert)",
+      "Bash(.venv/bin/python run_pipeline.py --steps transcribe)",
+      "Bash(python3 -c ' *)",
+      "Bash(.venv/bin/python run_pipeline.py --steps rewrite)",
+      "Bash(.venv/bin/python3 -c \"from pipeline.rewrite import _build_prompt; print\\('OK'\\)\")",
+      "Bash(.venv/bin/python tools/gen_spec.py)",
+      "Bash(.venv/bin/python run_pipeline.py *)",
+      "Bash(.venv/bin/python heygen_check.py *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /home/sonozuka/english_voice/avator && .venv/bin/python tools/gen_spec.py 2>/dev/null || true",
+            "statusMessage": "Regenerating CLAUDE.md..."
+          }
+        ]
+      }
+    ]
+  }
+}

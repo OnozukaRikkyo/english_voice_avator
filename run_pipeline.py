@@ -2,25 +2,24 @@
 """Main pipeline orchestrator.
 
 Usage:
-  python run_pipeline.py [--steps STEP1,STEP2,...] [--heygen-mode audio|text]
+  python run_pipeline.py [--steps STEP1,STEP2,...] [--project SLUG]
 
 Steps (default: all):
-  convert    m4a/mp4/mp3 → eng_mp3/
-  transcribe eng_mp3/    → eng_text/
-  rewrite    eng_text/   → eng_split/
-  tts        eng_split/  → regen_mp3/
-  concat     regen_mp3/  → voice_concat/ + concat_text/
-  heygen     concat_text/ + voice_concat/ → avatar_video/
+  convert    raw/       → audio/
+  transcribe audio/     → transcript/
+  rewrite    transcript/→ narration/
+  heygen     narration/ → video/
 
 Each step is idempotent: already-generated files are skipped automatically.
 """
 import argparse
 import sys
 import time
-from pipeline.config import ensure_dirs
+
+from pipeline.config import all_projects, ensure_project_dirs
 
 
-ALL_STEPS = ["convert", "transcribe", "rewrite", "tts", "concat", "heygen"]
+ALL_STEPS = ["convert", "transcribe", "rewrite", "heygen"]
 
 
 def main() -> None:
@@ -31,10 +30,9 @@ def main() -> None:
         help=f"Comma-separated steps to run (default: all). Choices: {', '.join(ALL_STEPS)}",
     )
     parser.add_argument(
-        "--heygen-mode",
-        choices=["audio", "text"],
-        default="audio",
-        help="HeyGen video mode: 'audio' uses MiniMax MP3, 'text' uses HeyGen TTS (default: audio)",
+        "--project",
+        default=None,
+        help="Run only this project slug (default: all projects)",
     )
     args = parser.parse_args()
 
@@ -44,44 +42,44 @@ def main() -> None:
         print(f"Unknown steps: {unknown}", file=sys.stderr)
         sys.exit(1)
 
-    ensure_dirs()
+    projects = [args.project] if args.project else all_projects()
+    if not projects:
+        print("No projects found. Place source files in data/{project}/raw/", file=sys.stderr)
+        sys.exit(1)
+
     t0 = time.time()
 
-    for step in steps:
-        print(f"\n{'='*50}")
-        print(f"  Step: {step}")
-        print(f"{'='*50}")
-        t1 = time.time()
+    for project in projects:
+        ensure_project_dirs(project)
+        print(f"\n{'='*60}")
+        print(f"  Project: {project}")
+        print(f"{'='*60}")
 
-        if step == "convert":
-            from pipeline import audio_convert
-            audio_convert.run()
+        for step in steps:
+            print(f"\n--- {step} ---")
+            t1 = time.time()
 
-        elif step == "transcribe":
-            from pipeline import transcribe
-            transcribe.run()
+            if step == "convert":
+                from pipeline import audio_convert
+                audio_convert.run(project)
 
-        elif step == "rewrite":
-            from pipeline import rewrite
-            rewrite.run()
+            elif step == "transcribe":
+                from pipeline import transcribe
+                transcribe.run(project)
 
-        elif step == "tts":
-            from pipeline import tts
-            tts.run()
+            elif step == "rewrite":
+                from pipeline import rewrite
+                rewrite.run(project)
 
-        elif step == "concat":
-            from pipeline import concat
-            concat.run()
+            elif step == "heygen":
+                from pipeline import heygen
+                heygen.run(project)
 
-        elif step == "heygen":
-            from pipeline import heygen
-            heygen.run(mode=args.heygen_mode)
+            print(f"  done in {time.time() - t1:.1f}s")
 
-        print(f"  done in {time.time() - t1:.1f}s")
-
-    print(f"\n{'='*50}")
+    print(f"\n{'='*60}")
     print(f"  Pipeline complete in {time.time() - t0:.1f}s")
-    print(f"{'='*50}")
+    print(f"{'='*60}")
 
 
 if __name__ == "__main__":

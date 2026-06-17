@@ -1,7 +1,8 @@
-"""Rewrite dialogue transcript → narration segments using Gemini.
+"""Stage transcript→narration: English text → YouTube narration (Gemini).
 
-Each output file is a single cohesive paragraph of at most REWRITE_MAX_CHARS chars,
-named <stem>_part01.txt, <stem>_part02.txt, …
+REWRITE_MAX_CHARS in config.py controls segment size:
+  -1  → unlimited: full narration in one file, no split instructions in prompt
+  N   → each segment is at most N characters
 """
 import json
 from pathlib import Path
@@ -11,18 +12,20 @@ from google.genai import types
 
 from .config import (
     GEMINI_API_KEY, GEMINI_REWRITE_MODEL, REWRITE_MAX_CHARS,
-    DIR_ENG_TEXT, DIR_ENG_SPLIT,
+    stage_dir, all_projects, STEP_IO,
 )
 
+_IN, _OUT = STEP_IO["rewrite"]
 _client: genai.Client | None = None
 
-SYSTEM_PROMPT_TEMPLATE = """\
+# ── Shared role + content instructions ────────────────────────────────────────
+
+_ROLE = """\
 # Role & Objective
 You are an expert geopolitical analyst, military OSINT (Open Source Intelligence) specialist, \
 and high-impact YouTube scriptwriter. You will receive a transcript of a two-person dialogue \
 discussing international geopolitical or military news. Your task is to transform it into a \
-compelling, sophisticated English commentary narration script for a YouTube audience, \
-then split it into voice-synthesis-ready segments.
+compelling, sophisticated English commentary narration script for a YouTube audience.
 
 # Core Instructions
 
@@ -47,7 +50,27 @@ Use rhetorical questions and smooth transitions to maintain viewer retention.
 - Tone: Analytical, authoritative, engaging, and objective.
 - Voice: Single narrator (no dialogue). Remove all conversational fillers \
 ("uh", "you know", "right", "exactly", "yeah", etc.).
-- Energy: High-impact, like a top geopolitics YouTube channel aimed at a global audience.
+- Energy: High-impact, like a top geopolitics YouTube channel aimed at a global audience.\
+"""
+
+# ── Unlimited mode: no mention of splitting ────────────────────────────────────
+
+_PROMPT_UNLIMITED = _ROLE + """
+
+# Output Format
+Return a JSON array with a single element containing the full narration:
+- {{ "index": 1, "text": <the complete narration script as one string> }}
+"""
+
+# ── Limited mode: splitting instructions included ──────────────────────────────
+
+_PROMPT_LIMITED = _ROLE + """
+
+# Segmentation Rules
+Divide the completed narration script into multiple segments. Each segment MUST satisfy ALL of the following:
+- It is a coherent unit of meaning — do NOT cut a sentence in the middle.
+- It is at most {max_chars} characters long (including spaces and punctuation).
+- Together, all segments must cover the ENTIRE narration without any omissions.
 
 # Output Format
 Return a JSON array of narration segments for AI voice synthesis:
@@ -55,6 +78,12 @@ Return a JSON array of narration segments for AI voice synthesis:
 - Each "text" MUST be at most {max_chars} characters (never cut mid-sentence).
 - Together, all segments must form the complete narration script without omissions.
 """
+
+
+def _build_prompt(max_chars: int, transcript: str) -> str:
+    if max_chars == -1:
+        return _PROMPT_UNLIMITED + "\n\n" + transcript
+    return _PROMPT_LIMITED.format(max_chars=max_chars) + "\n\n" + transcript
 
 
 def _get_client() -> genai.Client:
@@ -67,7 +96,7 @@ def _get_client() -> genai.Client:
 def rewrite_file(txt_path: Path, output_dir: Path, max_chars: int = REWRITE_MAX_CHARS) -> list[Path]:
     client = _get_client()
     text = txt_path.read_text(encoding="utf-8")
-    print(f"  Total chars: {len(text)}")
+    print(f"  Total chars: {len(text)}  |  max_chars={'unlimited' if max_chars == -1 else max_chars}")
 
     schema = {
         "type": "ARRAY",
@@ -83,7 +112,7 @@ def rewrite_file(txt_path: Path, output_dir: Path, max_chars: int = REWRITE_MAX_
 
     response = client.models.generate_content(
         model=GEMINI_REWRITE_MODEL,
-        contents=[SYSTEM_PROMPT_TEMPLATE.format(max_chars=max_chars) + "\n\n" + text],
+        contents=[_build_prompt(max_chars, text)],
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
             response_schema=schema,
@@ -95,7 +124,8 @@ def rewrite_file(txt_path: Path, output_dir: Path, max_chars: int = REWRITE_MAX_
     for p in paragraphs:
         idx = p["index"]
         part_text = p["text"].strip()
-        out = output_dir / f"{txt_path.stem}_part{idx:02d}.txt"
+        suffix = f"_part{idx:02d}" if max_chars != -1 else ""
+        out = output_dir / f"{txt_path.stem}{suffix}.txt"
         out.write_text(part_text, encoding="utf-8")
         print(f"    part {idx:02d}: {len(part_text)} chars → {out.name}")
         results.append(out)
@@ -103,22 +133,30 @@ def rewrite_file(txt_path: Path, output_dir: Path, max_chars: int = REWRITE_MAX_
     return results
 
 
-def run() -> list[Path]:
-    DIR_ENG_SPLIT.mkdir(parents=True, exist_ok=True)
+def run(project: str) -> list[Path]:
+    src_dir = stage_dir(project, _IN)
+    dst_dir = stage_dir(project, _OUT)
+    dst_dir.mkdir(parents=True, exist_ok=True)
     results: list[Path] = []
 
-    for txt in sorted(DIR_ENG_TEXT.glob("*.txt")):
-        existing = sorted(DIR_ENG_SPLIT.glob(f"{txt.stem}_part*.txt"))
+    for txt in sorted(src_dir.glob("*.txt")):
+        existing = list(dst_dir.glob(f"{txt.stem}*.txt"))
         if existing:
-            print(f"  [skip] {txt.stem} already split into {len(existing)} parts")
-            results.extend(existing)
+            print(f"  [skip] {txt.stem} → {len(existing)} file(s) in narration/")
+            results.extend(sorted(existing))
             continue
         print(f"  Rewriting: {txt.name}")
-        parts = rewrite_file(txt, DIR_ENG_SPLIT)
+        parts = rewrite_file(txt, dst_dir)
         results.extend(parts)
 
     return results
 
 
+def run_all() -> None:
+    for project in all_projects():
+        print(f"\n[{project}] rewrite")
+        run(project)
+
+
 if __name__ == "__main__":
-    run()
+    run_all()
