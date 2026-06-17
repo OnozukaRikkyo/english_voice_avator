@@ -18,7 +18,7 @@ def _client_get() -> genai.Client:
     return _client
 
 
-def run(project: str) -> list[Path]:
+def run(project: str, *, force: bool = False) -> list[Path]:
     src_dir = stage_dir(project, _IN)
     dst_dir = stage_dir(project, _OUT)
     dst_dir.mkdir(parents=True, exist_ok=True)
@@ -26,10 +26,12 @@ def run(project: str) -> list[Path]:
 
     for mp3 in sorted(src_dir.glob("*.mp3")):
         out = dst_dir / (mp3.stem + ".txt")
-        if out.exists():
+        if out.exists() and not force:
             print(f"  [skip] {out.name}")
             results.append(out)
             continue
+        if out.exists() and force:
+            out.unlink()
 
         print(f"  Transcribing: {mp3.name}")
         client = _client_get()

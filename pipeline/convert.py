@@ -18,7 +18,7 @@ def _to_mp3(src: Path, dst: Path) -> None:
         )
 
 
-def run(project: str) -> list[Path]:
+def run(project: str, *, force: bool = False) -> list[Path]:
     src_dir = stage_dir(project, _IN)
     dst_dir = stage_dir(project, _OUT)
     dst_dir.mkdir(parents=True, exist_ok=True)
@@ -28,9 +28,11 @@ def run(project: str) -> list[Path]:
         if src.suffix.lower() not in (".m4a", ".mp4", ".mp3"):
             continue
         dst = dst_dir / (src.stem + ".mp3")
-        if dst.exists():
+        if dst.exists() and not force:
             print(f"  [skip] {dst.name}")
         else:
+            if dst.exists():
+                dst.unlink()
             print(f"  {src.name} → {dst.name}")
             _to_mp3(src, dst)
         results.append(dst)

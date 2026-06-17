@@ -133,20 +133,31 @@ def rewrite_file(txt_path: Path, output_dir: Path, max_chars: int = REWRITE_MAX_
     return results
 
 
-def run(project: str) -> list[Path]:
+def run(project: str, *, force: bool = False, max_chars: int | None = None) -> list[Path]:
+    """Run rewrite for a project.
+
+    Args:
+        force: Delete existing narration files and re-run.
+        max_chars: Override REWRITE_MAX_CHARS (-1=unlimited, N=split at N chars).
+    """
+    effective_max = max_chars if max_chars is not None else REWRITE_MAX_CHARS
     src_dir = stage_dir(project, _IN)
     dst_dir = stage_dir(project, _OUT)
     dst_dir.mkdir(parents=True, exist_ok=True)
     results: list[Path] = []
 
     for txt in sorted(src_dir.glob("*.txt")):
-        existing = list(dst_dir.glob(f"{txt.stem}*.txt"))
-        if existing:
+        existing = sorted(dst_dir.glob(f"{txt.stem}*.txt"))
+        if existing and not force:
             print(f"  [skip] {txt.stem} → {len(existing)} file(s) in narration/")
-            results.extend(sorted(existing))
+            results.extend(existing)
             continue
-        print(f"  Rewriting: {txt.name}")
-        parts = rewrite_file(txt, dst_dir)
+        if existing and force:
+            for f in existing:
+                f.unlink()
+            print(f"  [force] removed {len(existing)} existing file(s)")
+        print(f"  Rewriting: {txt.name}  (max_chars={'unlimited' if effective_max == -1 else effective_max})")
+        parts = rewrite_file(txt, dst_dir, max_chars=effective_max)
         results.extend(parts)
 
     return results

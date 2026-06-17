@@ -100,7 +100,7 @@ def generate_video(text: str, output_path: Path, *, mp3_path: Path | None = None
     return download_video(url, output_path)
 
 
-def run(project: str) -> list[Path]:
+def run(project: str, *, force: bool = False) -> list[Path]:
     if not HEYGEN_API_KEY:
         print("  [skip] HEYGEN_API_KEY not set")
         return []
@@ -112,10 +112,12 @@ def run(project: str) -> list[Path]:
 
     for txt in sorted(src_dir.glob("*.txt")):
         out = dst_dir / (txt.stem + ".mp4")
-        if out.exists():
+        if out.exists() and not force:
             print(f"  [skip] {out.name}")
             results.append(out)
             continue
+        if out.exists() and force:
+            out.unlink()
         text = txt.read_text(encoding="utf-8").strip()
         print(f"  Generating: {txt.name} ({len(text)} chars)")
         generate_video(text, out, title=txt.stem)
