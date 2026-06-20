@@ -17,6 +17,8 @@ Transforms podcast/news audio into an AI avatar video using HeyGen.
   English transcript
     ↓ [rewrite]
   Narration script (YouTube style, Gemini 3.5 Flash)
+    ↓ [translate]
+  Narration script (YouTube style, Gemini 3.5 Flash)
     ↓ [heygen]
   Avatar video (mp4, HeyGen)
 ```
@@ -46,6 +48,7 @@ Inserting a new step never requires renaming existing directories.
 | `audio/` | Converted audio (mp3) |
 | `transcript/` | English transcript |
 | `narration/` | Narration script (YouTube style, Gemini 3.5 Flash) |
+| `translation/` | Japanese translation of narration (Gemini 2.5 Flash) |
 | `video/` | Avatar video (mp4, HeyGen) |
 
 ## Step I/O Reference
@@ -55,12 +58,13 @@ Inserting a new step never requires renaming existing directories.
 | `convert` | `raw/` | `audio/` | `pipeline/convert.py` |
 | `transcribe` | `audio/` | `transcript/` | `pipeline/transcribe.py` |
 | `rewrite` | `transcript/` | `narration/` | `pipeline/rewrite.py` |
+| `translate` | `narration/` | `translation/` | `pipeline/translate.py` |
 | `heygen` | `narration/` | `video/` | `pipeline/heygen.py` |
 
 ## How to Add a New Step
 
 1. Add the new stage name to `STAGES` in `pipeline/config.py` at the correct position.
-   (Current order: `["raw", "audio", "transcript", "narration", "video"]`)
+   (Current order: `["raw", "audio", "transcript", "narration", "translation", "video"]`)
 2. Add the step to `STEP_IO` with its `(input_stage, output_stage)`.
 3. Create `pipeline/<step>.py` with `def run(project: str) -> list[Path]:`.
 4. Add the step name to `ALL_STEPS` in `run_pipeline.py`.
@@ -90,16 +94,14 @@ Each step is **idempotent** — existing output files are skipped.
 |----------|-------|
 | `GEMINI_TRANSCRIBE_MODEL` | `gemini-2.5-flash` |
 | `GEMINI_REWRITE_MODEL` | `gemini-3.5-flash` |
-| `REWRITE_MAX_CHARS` | `-1` (-1 = unlimited) |
-| `MINIMAX_VOICE_ID` | `moss_audio_10fc0153-4b51-11f1-8d50-22f63c968931` |
-| `MINIMAX_MODEL` | `speech-2.8-hd` |
+| `REWRITE_MAX_CHARS` | `7000` |
 | `HEYGEN_RATIO` | `16:9` |
 
 ## Environment
 
 - Python 3.12, venv at `.venv/`
 - VS Code auto-activates venv via `.vscode/settings.json`
-- API keys in `.env` (gitignored): `GEMINI_API_KEY`, `MINIMAX_API_KEY`, `HEYGEN_API_KEY`, `HEYGEN_AVATAR_ID`, `HEYGEN_VOICE_ID`
+- API keys in `.env` (gitignored): `GEMINI_API_KEY`, `HEYGEN_API_KEY`, `HEYGEN_AVATAR_ID`, `HEYGEN_VOICE_ID`
 
 ## GitHub
 

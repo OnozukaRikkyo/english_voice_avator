@@ -18,18 +18,39 @@ Flags:
                    Use -1 for unlimited (single file), or N for max chars per segment.
 
 Each step is idempotent by default: already-generated files are skipped.
+New audio files placed in data/inbox/ are automatically registered as projects.
 """
 import argparse
+import shutil
 import sys
 import time
 
-from pipeline.config import all_projects, ensure_project_dirs
-
+from pipeline.config import INBOX_DIR, DATA, all_projects, ensure_project_dirs, slugify
 
 ALL_STEPS = ["convert", "transcribe", "rewrite", "translate", "heygen"]
+_AUDIO_EXTS = {".m4a", ".mp4", ".mp3"}
+
+
+def _scan_inbox() -> None:
+    """Create projects from any audio files found in data/inbox/."""
+    INBOX_DIR.mkdir(parents=True, exist_ok=True)
+    audio_files = [f for f in sorted(INBOX_DIR.iterdir()) if f.suffix.lower() in _AUDIO_EXTS]
+    if not audio_files:
+        return
+    print(f"Inbox: {len(audio_files)} file(s) found")
+    for audio in audio_files:
+        slug = slugify(audio.stem)
+        dst = DATA / slug / "raw" / audio.name
+        if dst.exists():
+            print(f"  [skip] {audio.name} (project '{slug}' already exists)")
+            continue
+        ensure_project_dirs(slug)
+        shutil.copy2(audio, dst)
+        print(f"  {audio.name} → data/{slug}/raw/")
 
 
 def main() -> None:
+    _scan_inbox()
     parser = argparse.ArgumentParser(description="English Voice Avatar pipeline")
     parser.add_argument(
         "--steps",

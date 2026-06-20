@@ -27,10 +27,34 @@
       "Bash(.venv/bin/python3 -c \"from pipeline.rewrite import _build_prompt; print\\('OK'\\)\")",
       "Bash(.venv/bin/python tools/gen_spec.py)",
       "Bash(.venv/bin/python run_pipeline.py *)",
-      "Bash(.venv/bin/python heygen_check.py *)"
+      "Bash(.venv/bin/python heygen_check.py *)",
+      "Bash(.venv/bin/python tools/gen_notebooklm_prompt.py)"
     ]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"SessionStart\", \"additionalContext\": \"## Pipeline design rules\\n- Entry point: python run_pipeline.py (no arguments needed for normal use)\\n- New audio files go in data/inbox/ — auto-scanned on every run\\n- MiniMax is FORBIDDEN: never add MiniMax code, imports, or references\\n- Project slug is always auto-derived from audio filename via slugify()\\n- Never rename existing files or directories\"}}'",
+            "statusMessage": "Loading pipeline design rules..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport json, sys, re, os\ndata = json.load(sys.stdin)\npath = data.get('tool_input', {}).get('file_path', '')\nif path:\n    basename = os.path.basename(path)\n    if re.search(r'(?<![a-zA-Z])new(?![a-zA-Z])', basename, re.IGNORECASE):\n        print(json.dumps({'continue': False, 'stopReason': f'Filename contains \\\"new\\\": {basename}. Use a descriptive role-based name instead (e.g. video_guide.md not new_video.md).'}))\n\"",
+            "statusMessage": "Checking filename convention..."
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
@@ -39,6 +63,11 @@
             "type": "command",
             "command": "cd /home/sonozuka/english_voice/avator && .venv/bin/python tools/gen_spec.py 2>/dev/null || true",
             "statusMessage": "Regenerating CLAUDE.md..."
+          },
+          {
+            "type": "command",
+            "command": "cd /home/sonozuka/english_voice/avator && .venv/bin/python tools/gen_docs.py 2>/dev/null || true",
+            "statusMessage": "Regenerating docs/..."
           },
           {
             "type": "command",

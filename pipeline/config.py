@@ -32,21 +32,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── API keys ──────────────────────────────────────────────────────────────────
-GEMINI_API_KEY  = os.environ["GEMINI_API_KEY"]
-MINIMAX_API_KEY = os.environ["MINIMAX_API_KEY"]
-HEYGEN_API_KEY  = os.environ.get("HEYGEN_API_KEY", "")
+GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
+HEYGEN_API_KEY = os.environ.get("HEYGEN_API_KEY", "")
 
 # ── Model / service constants ─────────────────────────────────────────────────
-GEMINI_TRANSCRIBE_MODEL  = "gemini-2.5-flash"
-GEMINI_REWRITE_MODEL     = "gemini-3.5-flash"
-GEMINI_TRANSLATE_MODEL   = "gemini-2.5-flash"
-REWRITE_MAX_CHARS        = -1   # -1 = unlimited (one output file)
-
-MINIMAX_TTS_URL   = "https://api.minimax.io/v1/t2a_v2"
-MINIMAX_VOICE_ID  = "moss_audio_10fc0153-4b51-11f1-8d50-22f63c968931"
-MINIMAX_MODEL     = "speech-2.8-hd"
-MINIMAX_EMOTION   = "calm"
-MINIMAX_MAX_CHARS = 5000
+GEMINI_TRANSCRIBE_MODEL = "gemini-2.5-flash"
+GEMINI_REWRITE_MODEL    = "gemini-3.5-flash"
+GEMINI_TRANSLATE_MODEL  = "gemini-2.5-flash"
+REWRITE_MAX_CHARS       = 7000  # max chars per narration segment; HeyGen limit is 5000
 
 HEYGEN_BASE_URL  = "https://api.heygen.com"
 HEYGEN_AVATAR_ID = os.environ.get("HEYGEN_AVATAR_ID", "")
@@ -92,6 +85,7 @@ STEP_IO: dict[str, tuple[str, str]] = {
 # ── Path helpers ──────────────────────────────────────────────────────────────
 ROOT = Path(__file__).parent.parent
 DATA = ROOT / "data"
+INBOX_DIR = DATA / "inbox"  # drop zone: place audio files here, run_pipeline.py picks them up
 
 # Intermediate split files (e.g. _part01.txt) live here, inside their stage dir.
 # Final outputs (e.g. _full.txt, .mp4) live directly in the stage dir.

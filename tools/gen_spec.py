@@ -13,7 +13,6 @@ sys.path.insert(0, str(ROOT))
 from pipeline.config import (
     STAGES, STAGE_LABELS, STEP_IO,
     GEMINI_TRANSCRIBE_MODEL, GEMINI_REWRITE_MODEL, REWRITE_MAX_CHARS,
-    MINIMAX_VOICE_ID, MINIMAX_MODEL,
     HEYGEN_RATIO,
 )
 
@@ -127,16 +126,14 @@ Each step is **idempotent** — existing output files are skipped.
 |----------|-------|
 | `GEMINI_TRANSCRIBE_MODEL` | `{GEMINI_TRANSCRIBE_MODEL}` |
 | `GEMINI_REWRITE_MODEL` | `{GEMINI_REWRITE_MODEL}` |
-| `REWRITE_MAX_CHARS` | `{REWRITE_MAX_CHARS}` (-1 = unlimited) |
-| `MINIMAX_VOICE_ID` | `{MINIMAX_VOICE_ID}` |
-| `MINIMAX_MODEL` | `{MINIMAX_MODEL}` |
+| `REWRITE_MAX_CHARS` | `{REWRITE_MAX_CHARS}` |
 | `HEYGEN_RATIO` | `{HEYGEN_RATIO}` |
 
 ## Environment
 
 - Python 3.12, venv at `.venv/`
 - VS Code auto-activates venv via `.vscode/settings.json`
-- API keys in `.env` (gitignored): `GEMINI_API_KEY`, `MINIMAX_API_KEY`, `HEYGEN_API_KEY`, `HEYGEN_AVATAR_ID`, `HEYGEN_VOICE_ID`
+- API keys in `.env` (gitignored): `GEMINI_API_KEY`, `HEYGEN_API_KEY`, `HEYGEN_AVATAR_ID`, `HEYGEN_VOICE_ID`
 
 ## GitHub
 
