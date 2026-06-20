@@ -6,11 +6,13 @@ Usage:
                          [--force] [--max-chars N]
 
 Steps (default: all):
-  convert    raw/        → audio/
-  transcribe audio/      → transcript/
-  rewrite    transcript/ → narration/
-  translate  narration/  → translation/   (English → Japanese)
-  heygen     narration/  → video/
+  convert          raw/             → audio/
+  transcribe       audio/           → transcript/
+  rewrite          transcript/      → narration/parts/
+  concat_narration narration/parts/ → narration/*_full.txt
+  translate        narration/       → translation/
+  heygen           narration/parts/ → video/parts/
+  concat_video     video/parts/     → video/*.mp4
 
 Flags:
   --force          Force re-run even if output files already exist.
@@ -27,7 +29,7 @@ import time
 
 from pipeline.config import INBOX_DIR, DATA, all_projects, ensure_project_dirs, slugify
 
-ALL_STEPS = ["convert", "transcribe", "rewrite", "translate", "heygen"]
+ALL_STEPS = ["convert", "transcribe", "rewrite", "concat_narration", "translate", "heygen", "concat_video"]
 _AUDIO_EXTS = {".m4a", ".mp4", ".mp3"}
 
 
@@ -116,6 +118,10 @@ def main() -> None:
                 from pipeline import rewrite
                 rewrite.run(project, force=args.force, max_chars=args.max_chars)
 
+            elif step == "concat_narration":
+                from tools.concat_narration import concat_narration
+                concat_narration(project, force=args.force)
+
             elif step == "translate":
                 from pipeline import translate
                 translate.run(project, force=args.force)
@@ -123,6 +129,10 @@ def main() -> None:
             elif step == "heygen":
                 from pipeline import heygen
                 heygen.run(project, force=args.force)
+
+            elif step == "concat_video":
+                from tools.concat_video import concat_video
+                concat_video(project, force=args.force)
 
             print(f"  done in {time.time() - t1:.1f}s")
 

@@ -20,7 +20,7 @@ python run_pipeline.py
 これだけです。以下がすべて自動で実行されます：
 
 1. `data/inbox/` をスキャンし、ファイル名からプロジェクトを自動作成
-2. パイプライン実行: `convert → transcribe → rewrite → translate → heygen`
+2. パイプライン実行: `convert → transcribe → rewrite → concat_narration → translate → heygen → concat_video`
 3. 動画・ナレーションの結合
 
 ## トラブルシューティング

@@ -17,9 +17,13 @@ Transforms podcast/news audio into an AI avatar video using HeyGen.
   English transcript
     ↓ [rewrite]
   Narration script (YouTube style, Gemini 3.5 Flash)
+    ↓ [concat_narration]
+  Narration script (YouTube style, Gemini 3.5 Flash)
     ↓ [translate]
   Narration script (YouTube style, Gemini 3.5 Flash)
     ↓ [heygen]
+  Avatar video (mp4, HeyGen)
+    ↓ [concat_video]
   Avatar video (mp4, HeyGen)
 ```
 
@@ -58,8 +62,10 @@ Inserting a new step never requires renaming existing directories.
 | `convert` | `raw/` | `audio/` | `pipeline/convert.py` |
 | `transcribe` | `audio/` | `transcript/` | `pipeline/transcribe.py` |
 | `rewrite` | `transcript/` | `narration/` | `pipeline/rewrite.py` |
+| `concat_narration` | `narration/` | `narration/` | `pipeline/concat_narration.py` |
 | `translate` | `narration/` | `translation/` | `pipeline/translate.py` |
 | `heygen` | `narration/` | `video/` | `pipeline/heygen.py` |
+| `concat_video` | `video/` | `video/` | `pipeline/concat_video.py` |
 
 ## How to Add a New Step
 

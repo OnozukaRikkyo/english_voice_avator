@@ -28,7 +28,8 @@
       "Bash(.venv/bin/python tools/gen_spec.py)",
       "Bash(.venv/bin/python run_pipeline.py *)",
       "Bash(.venv/bin/python heygen_check.py *)",
-      "Bash(.venv/bin/python tools/gen_notebooklm_prompt.py)"
+      "Bash(.venv/bin/python tools/gen_notebooklm_prompt.py)",
+      "Bash(.venv/bin/pip show *)"
     ]
   },
   "hooks": {

@@ -75,11 +75,13 @@ STAGE_LABELS: dict[str, str] = {
 #   translate → reads narration/{stem}_full.txt
 #   heygen    → reads narration/parts/{stem}_part*.txt
 STEP_IO: dict[str, tuple[str, str]] = {
-    "convert":    ("raw",        "audio"),
-    "transcribe": ("audio",      "transcript"),
-    "rewrite":    ("transcript", "narration"),
-    "translate":  ("narration",  "translation"),
-    "heygen":     ("narration",  "video"),
+    "convert":          ("raw",         "audio"),
+    "transcribe":       ("audio",       "transcript"),
+    "rewrite":          ("transcript",  "narration"),
+    "concat_narration": ("narration",   "narration"),
+    "translate":        ("narration",   "translation"),
+    "heygen":           ("narration",   "video"),
+    "concat_video":     ("video",       "video"),
 }
 
 # ── Path helpers ──────────────────────────────────────────────────────────────
