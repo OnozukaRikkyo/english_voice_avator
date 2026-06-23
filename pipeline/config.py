@@ -39,13 +39,12 @@ HEYGEN_API_KEY = os.environ.get("HEYGEN_API_KEY", "")
 GEMINI_TRANSCRIBE_MODEL = "gemini-2.5-flash"
 GEMINI_REWRITE_MODEL    = "gemini-3.5-flash"
 GEMINI_TRANSLATE_MODEL  = "gemini-2.5-flash"
-REWRITE_MAX_CHARS       = 7000  # max chars per narration segment; HeyGen limit is 5000
+REWRITE_MAX_CHARS       = 7000  # Gemini splits narration into parts of ≤7000 chars at natural break points
 
 HEYGEN_BASE_URL  = "https://api.heygen.com"
 HEYGEN_AVATAR_ID = os.environ.get("HEYGEN_AVATAR_ID", "")
 HEYGEN_VOICE_ID  = os.environ.get("HEYGEN_VOICE_ID", "")
 HEYGEN_RATIO     = "16:9"
-HEYGEN_CAPTION   = False   # disable on-screen captions
 
 # ── Pipeline stages ───────────────────────────────────────────────────────────
 # Ordered list — the ORDER defines the pipeline sequence.

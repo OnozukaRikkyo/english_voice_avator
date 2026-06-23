@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
 """Concatenate narration part files into a single text file.
 
-Usage:
-  python tools/concat_narration.py [--project SLUG] [--force]
-
 Input:  data/{project}/narration/parts/{stem}_part*.txt
 Output: data/{project}/narration/{stem}_full.txt
 
-Layout rule:
-  narration/parts/  ← intermediate split files (rewrite output, heygen input)
-  narration/        ← final full narration (_full.txt lives here)
+Debug: PIPELINE_DEBUG=1 python tools/concat_narration.py  (first project only)
 """
-import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -47,19 +42,15 @@ def concat_narration(project: str, *, force: bool = False) -> list[Path]:
     return results
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Concatenate narration parts → _full.txt")
-    parser.add_argument("--project", default=None)
-    parser.add_argument("--force", action="store_true")
-    args = parser.parse_args()
-
-    projects = [args.project] if args.project else all_projects()
-    if not projects:
-        print("No projects found.", file=sys.stderr)
-        sys.exit(1)
+def run_all() -> None:
+    projects = all_projects()
+    if os.environ.get("PIPELINE_DEBUG"):
+        projects = projects[:1]
+        print("[debug] PIPELINE_DEBUG: first project only")
     for project in projects:
-        concat_narration(project, force=args.force)
+        print(f"\n[{project}] concat_narration")
+        concat_narration(project)
 
 
 if __name__ == "__main__":
-    main()
+    run_all()

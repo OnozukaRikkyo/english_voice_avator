@@ -41,7 +41,12 @@ def run(project: str, *, force: bool = False) -> list[Path]:
 
 
 def run_all() -> None:
-    for project in all_projects():
+    import os
+    projects = all_projects()
+    if os.environ.get("PIPELINE_DEBUG"):
+        projects = projects[:1]
+        print("[debug] PIPELINE_DEBUG: first project only")
+    for project in projects:
         print(f"\n[{project}] convert")
         run(project)
 

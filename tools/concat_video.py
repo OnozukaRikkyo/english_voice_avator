@@ -1,19 +1,12 @@
 #!/usr/bin/env python3
 """Concatenate video part files into a single MP4.
 
-Usage:
-  python tools/concat_video.py [--project SLUG] [--force]
-
 Input:  data/{project}/video/parts/{stem}_part*.mp4
 Output: data/{project}/video/{stem}.mp4
 
-Layout rule:
-  video/parts/  ← intermediate part videos (heygen output)
-  video/        ← final concatenated video (.mp4 lives here)
-
-Uses ffmpeg concat demuxer (stream copy — no re-encoding, lossless and fast).
+Debug: PIPELINE_DEBUG=1 python tools/concat_video.py  (first project only)
 """
-import argparse
+import os
 import subprocess
 import sys
 import tempfile
@@ -60,8 +53,14 @@ def concat_video(project: str, *, force: bool = False) -> list[Path]:
                  "-i", str(list_path), "-c", "copy", str(out)],
                 check=True, capture_output=True,
             )
-            print(f"    → {out.name} ({out.stat().st_size / 1024 / 1024:.1f} MB)")
-            results.append(out)
+            out_mb   = out.stat().st_size / 1024 / 1024
+            parts_mb = sum(p.stat().st_size for p in parts_sorted) / 1024 / 1024
+            ratio    = out_mb / parts_mb if parts_mb else 0
+            print(f"    → {out.name} ({out_mb:.1f} MB / parts total {parts_mb:.1f} MB, ratio {ratio:.2f})")
+            if ratio < 0.95:
+                print(f"  WARNING: output is only {ratio*100:.0f}% of parts total — possible concat failure", file=sys.stderr)
+            else:
+                results.append(out)
         except subprocess.CalledProcessError as e:
             print(f"  ERROR: ffmpeg failed\n{e.stderr.decode()}", file=sys.stderr)
         finally:
@@ -70,19 +69,15 @@ def concat_video(project: str, *, force: bool = False) -> list[Path]:
     return results
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Concatenate video parts → final .mp4")
-    parser.add_argument("--project", default=None)
-    parser.add_argument("--force", action="store_true")
-    args = parser.parse_args()
-
-    projects = [args.project] if args.project else all_projects()
-    if not projects:
-        print("No projects found.", file=sys.stderr)
-        sys.exit(1)
+def run_all() -> None:
+    projects = all_projects()
+    if os.environ.get("PIPELINE_DEBUG"):
+        projects = projects[:1]
+        print("[debug] PIPELINE_DEBUG: first project only")
     for project in projects:
-        concat_video(project, force=args.force)
+        print(f"\n[{project}] concat_video")
+        concat_video(project)
 
 
 if __name__ == "__main__":
-    main()
+    run_all()

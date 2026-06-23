@@ -50,7 +50,24 @@ Use rhetorical questions and smooth transitions to maintain viewer retention.
 - Tone: Analytical, authoritative, engaging, and objective.
 - Voice: Single narrator (no dialogue). Remove all conversational fillers \
 ("uh", "you know", "right", "exactly", "yeah", etc.).
-- Energy: High-impact, like a top geopolitics YouTube channel aimed at a global audience.\
+- Energy: High-impact, like a top geopolitics YouTube channel aimed at a global audience.
+
+4. Coverage — CRITICAL:
+- You MUST cover EVERY topic, event, location, and analytical point mentioned in the transcript.
+- Do NOT summarize, condense, or omit any section of the transcript.
+- The narration script must be long enough to fully address all content in the transcript. \
+A 50,000-character transcript should produce a narration of comparable length and depth — \
+not a short summary.
+- If in doubt, expand with analysis rather than cut content.
+
+5. SSML Formatting — REQUIRED:
+- Wrap the entire text of each segment in <speak> ... </speak>.
+- Insert <break time="Xs"/> tags at natural spoken pauses. Use these guidelines:
+  - Between sentences: <break time="0.5s"/>
+  - Between paragraphs or topic shifts: <break time="1.0s"/>
+  - At major section transitions (e.g., hook → body, body → conclusion): <break time="1.5s"/>
+- Do NOT add breaks in the middle of a sentence.
+- Example: <speak>Russia's air defense failed last night. <break time="0.5s"/> Here is why that matters. <break time="1.0s"/> The Pantsir systems...</speak>\
 """
 
 # ── Unlimited mode: no mention of splitting ────────────────────────────────────
@@ -59,7 +76,7 @@ _PROMPT_UNLIMITED = _ROLE + """
 
 # Output Format
 Return a JSON array with a single element containing the full narration:
-- {{ "index": 1, "text": <the complete narration script as one string> }}
+- {{ "index": 1, "text": <the complete narration script in SSML: wrapped in <speak>...</speak> with <break> tags> }}
 """
 
 # ── Limited mode: splitting instructions included ──────────────────────────────
@@ -67,14 +84,16 @@ Return a JSON array with a single element containing the full narration:
 _PROMPT_LIMITED = _ROLE + """
 
 # Segmentation Rules
-Divide the completed narration script into multiple segments. Each segment MUST satisfy ALL of the following:
-- It is a coherent unit of meaning — do NOT cut a sentence in the middle.
-- It is at most {max_chars} characters long (including spaces and punctuation).
-- Together, all segments must cover the ENTIRE narration without any omissions.
+After writing the COMPLETE narration (covering all content), divide it into segments:
+- Each segment MUST be a coherent unit of meaning — do NOT cut a sentence in the middle.
+- Each segment MUST be at most {max_chars} characters long (including spaces and punctuation).
+- ALL segments combined MUST contain the complete narration — zero omissions.
+- Use as many segments as needed. Do not limit the number of segments.
 
 # Output Format
 Return a JSON array of narration segments for AI voice synthesis:
-- Each element: {{ "index": <integer starting from 1>, "text": <string> }}
+- Each element: {{ "index": <integer starting from 1>, "text": <SSML string> }}
+- Each "text" MUST be wrapped in <speak>...</speak> and contain <break> tags at natural pauses.
 - Each "text" MUST be at most {max_chars} characters (never cut mid-sentence).
 - Together, all segments must form the complete narration script without omissions.
 """
@@ -120,11 +139,17 @@ def rewrite_file(txt_path: Path, output_dir: Path, max_chars: int = REWRITE_MAX_
     )
 
     paragraphs = sorted(json.loads(response.text or "[]"), key=lambda x: x["index"])
+    if not paragraphs:
+        raise RuntimeError(f"Gemini returned empty result for {txt_path.name}")
+
     results: list[Path] = []
     for p in paragraphs:
         idx = p["index"]
         part_text = p["text"].strip()
-        # Always use _partNN suffix — final merged file lives in parent (stage) dir
+        if len(part_text) < 50:
+            raise RuntimeError(
+                f"Part {idx:02d} of {txt_path.name} is too short ({len(part_text)} chars) — likely a generation error"
+            )
         out = output_dir / f"{txt_path.stem}_part{idx:02d}.txt"
         out.write_text(part_text, encoding="utf-8")
         print(f"    part {idx:02d}: {len(part_text)} chars → {out.name}")
@@ -152,9 +177,15 @@ def run(project: str, *, force: bool = False, max_chars: int | None = None) -> l
     for txt in sorted(src_dir.glob("*.txt")):
         existing = sorted(dst_dir.glob(f"{txt.stem}_part*.txt"))
         if existing and not force:
-            print(f"  [skip] {txt.stem} → {len(existing)} part(s) in narration/parts/")
-            results.extend(existing)
-            continue
+            invalid = [f for f in existing if len(f.read_text(encoding="utf-8").strip()) < 50]
+            if invalid:
+                print(f"  [invalid] {len(invalid)} part(s) too short, regenerating: {[f.name for f in invalid]}")
+                for f in existing:
+                    f.unlink()
+            else:
+                print(f"  [skip] {txt.stem} → {len(existing)} part(s) in narration/parts/")
+                results.extend(existing)
+                continue
         if existing and force:
             for f in existing:
                 f.unlink()
@@ -167,7 +198,12 @@ def run(project: str, *, force: bool = False, max_chars: int | None = None) -> l
 
 
 def run_all() -> None:
-    for project in all_projects():
+    import os
+    projects = all_projects()
+    if os.environ.get("PIPELINE_DEBUG"):
+        projects = projects[:1]
+        print("[debug] PIPELINE_DEBUG: first project only")
+    for project in projects:
         print(f"\n[{project}] rewrite")
         run(project)
 
