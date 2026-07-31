@@ -17,41 +17,47 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pipeline import llm
 from pipeline.config import (
-    GEMINI_API_KEY, OPENAI_API_KEY,
-    TRANSCRIBE_MODEL, REWRITE_MODEL, TRANSLATE_MODEL, TRANSCRIBE_ENGLISH_MODEL,
-    NOTEBOOKLM_PROMPT_MODEL,
+    GEMINI_API_KEY, OPENAI_API_KEY, MODEL_SLOTS, PRESETS,
+    current_models, resolve_models,
 )
 
-# (表示名, 定数名, 値, 実行時に上書きする方法)
-# config.py のモデル定数はここに全部並べる。増やしたらこの表にも足すこと。
-_STEPS = [
-    ("transcribe",  "TRANSCRIBE_MODEL",         TRANSCRIBE_MODEL,         "./run.sh --model-transcribe MODEL"),
-    ("  └ 英語化",  "TRANSCRIBE_ENGLISH_MODEL", TRANSCRIBE_ENGLISH_MODEL, "(config.py のみ)"),
-    ("rewrite",     "REWRITE_MODEL",            REWRITE_MODEL,            "./run.sh --model-rewrite MODEL"),
-    ("translate",   "TRANSLATE_MODEL",          TRANSLATE_MODEL,          "./run.sh --model-translate MODEL"),
-    ("notebooklm",  "NOTEBOOKLM_PROMPT_MODEL",  NOTEBOOKLM_PROMPT_MODEL,  "./gen_notebooklm_prompt.sh --model MODEL"),
-]
+# slot → (表示名, 定数名, 実行時に上書きする方法)
+_SLOT_INFO = {
+    "transcribe":         ("transcribe", "TRANSCRIBE_MODEL",         "./run.sh --model-transcribe MODEL"),
+    "transcribe_english": ("  └ 英語化", "TRANSCRIBE_ENGLISH_MODEL", "./run.sh --model-transcribe-english MODEL"),
+    "rewrite":            ("rewrite",    "REWRITE_MODEL",            "./run.sh --model-rewrite MODEL"),
+    "translate":          ("translate",  "TRANSLATE_MODEL",          "./run.sh --model-translate MODEL"),
+    "notebooklm":         ("notebooklm", "NOTEBOOKLM_PROMPT_MODEL",  "./gen_notebooklm_prompt.sh --model-notebooklm MODEL"),
+}
 
 
-def show_config() -> None:
+def show_config(models: dict[str, str], provider: str | None) -> None:
     print("\n=== APIキー ===")
     print(f"  GEMINI_API_KEY : {'設定済み' if GEMINI_API_KEY else '(未設定)'}")
     print(f"  OPENAI_API_KEY : {'設定済み' if OPENAI_API_KEY else '(未設定)'}")
 
-    print("\n=== 工程ごとのモデル（config.py で変更）===")
+    src = f"--provider {provider} のプリセット" if provider else "config.py の定数"
+    print(f"\n=== 工程ごとのモデル（{src}）===")
     print(f"  {'工程':<12} {'モデル':<22} {'提供元':<7} {'定数'}")
-    for step, const, model, _ in _STEPS:
-        unused = step.startswith("  └") and not llm.is_openai(TRANSCRIBE_MODEL)
+    for slot in MODEL_SLOTS:
+        step, const, _ = _SLOT_INFO[slot]
+        model = models[slot]
+        unused = slot == "transcribe_english" and not llm.is_openai(models["transcribe"])
         note = "  ← Gemini経路では未使用" if unused else ""
         print(f"  {step:<12} {model:<22} {llm.provider(model):<7} {const}{note}")
 
-    print("\n=== この実行だけ変える ===")
-    for step, _, _, how in _STEPS:
+    print("\n=== 全工程をまとめて切り替える ===")
+    for name in sorted(PRESETS):
+        print(f"  ./run.sh --provider {name}")
+
+    print("\n=== 1工程だけ変える（--provider より優先）===")
+    for slot in MODEL_SLOTS:
+        step, _, how = _SLOT_INFO[slot]
         print(f"  {step:<12} {how}")
 
     # 実際に使われるモデルだけを対象にキーの過不足を見る
-    active = [m for s, _, m, _ in _STEPS
-              if not (s.startswith("  └") and not llm.is_openai(TRANSCRIBE_MODEL))]
+    active = [models[s] for s in MODEL_SLOTS
+              if not (s == "transcribe_english" and not llm.is_openai(models["transcribe"]))]
     needed = {llm.provider(m) for m in active}
     missing = [
         p for p in needed
@@ -63,14 +69,15 @@ def show_config() -> None:
         print(f"\n  ✓ 必要なキー（{', '.join(sorted(needed))}）はすべて設定済み")
 
 
-def check_live() -> None:
+def check_live(models: dict[str, str]) -> None:
     print("\n=== 疎通確認（実際に呼び出します）===")
     tested: set[str] = set()
-    for step, _, model, _how in _STEPS:
+    for slot in MODEL_SLOTS:
+        model = models[slot]
         if model in tested:
             continue
         tested.add(model)
-        if model == TRANSCRIBE_MODEL:
+        if model == models["transcribe"]:
             print(f"  {model:<22} 音声モデルのため疎通確認はスキップ（./run_transcribe.sh で確認）")
             continue
         try:
@@ -102,11 +109,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="設定中のモデルとAPIキーを確認する")
     parser.add_argument("--live", action="store_true", help="実際に呼び出して疎通確認する")
     parser.add_argument("--models", action="store_true", help="利用可能なモデル一覧を取得する")
+    parser.add_argument(
+        "--provider", default=None, choices=sorted(PRESETS),
+        help="プリセットを適用したらどうなるかを表示する（設定は変更しない）",
+    )
     args = parser.parse_args()
 
-    show_config()
+    models = resolve_models(args.provider)
+
+    show_config(models, args.provider)
     if args.live:
-        check_live()
+        check_live(models)
     if args.models:
         list_models()
 

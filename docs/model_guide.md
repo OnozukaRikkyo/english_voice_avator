@@ -16,28 +16,50 @@
 | `REWRITE_MODEL` | `gemini-3.5-flash` | Gemini |
 | `TRANSLATE_MODEL` | `gemini-2.5-flash` | Gemini |
 
-## 恒久的に変える
+## 変え方は3通り
 
-`pipeline/config.py` の該当行を書き換えるだけです。
+優先順位は **個別指定 > プリセット > config.py の定数** です。
+
+### 1. 全工程をまとめて（この実行だけ）
+
+```bash
+./run.sh --provider gemini
+./run.sh --provider openai
+```
+
+中身は `pipeline/config.py` の `PRESETS` です。
+
+### 2. 1工程だけ（この実行だけ）
+
+```bash
+./run.sh --model-rewrite gpt-5.6-luna
+./run.sh --model-transcribe gemini-2.5-flash
+./gen_notebooklm_prompt.sh --model-notebooklm gemini-2.5-flash
+```
+
+プリセットと併用でき、個別指定が勝ちます。
+
+```bash
+./run.sh --provider openai --model-rewrite gemini-3.5-flash
+  → rewrite だけ Gemini、他は OpenAI
+```
+
+### 3. 恒久的に変える
+
+`pipeline/config.py` の該当行を書き換えます。
 
 ```python
 TRANSCRIBE_MODEL = "gpt-transcribe"     # OpenAI
 TRANSCRIBE_MODEL = "gemini-2.5-flash"   # Gemini
 ```
 
-## 一時的に変える（この実行だけ）
-
-```bash
-./run.sh --model-rewrite gpt-5.6-luna
-./run.sh --model-transcribe gemini-2.5-flash
-```
-
 ## 確認する
 
 ```bash
-./run_llm_check.sh            # 工程ごとのモデルとプロバイダ、キーの有無
-./run_llm_check.sh --live     # 実際に呼び出して疎通確認
-./run_llm_check.sh --models   # 利用可能なモデル一覧
+./run_llm_check.sh                    # 工程ごとのモデルとプロバイダ、キーの有無
+./run_llm_check.sh --provider openai  # プリセット適用後の姿を予習（変更はしない）
+./run_llm_check.sh --live             # 実際に呼び出して疎通確認
+./run_llm_check.sh --models           # 利用可能なモデル一覧
 ```
 
 ## 文字起こしの注意

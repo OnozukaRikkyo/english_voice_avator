@@ -62,6 +62,66 @@ TRANSCRIBE_ENGLISH_MODEL = "gemini-2.5-flash"
 # 上と同じ規約で切り替わる。
 NOTEBOOKLM_PROMPT_MODEL = "gpt-5.6-luna"
 
+# ── プロバイダ一括切り替え ────────────────────────────────────────────────────
+# 上の5定数は工程ごとに最適なモデルを選ぶための「現在の設定」。
+# 全部まとめて片方に寄せたいときのために、プロバイダ別プリセットを用意する。
+#
+#   ./run.sh --provider openai      全工程を OpenAI に
+#   ./run.sh --provider gemini      全工程を Gemini に
+#   ./run.sh --provider openai --model-rewrite gemini-3.5-flash   個別指定が優先
+#
+# プリセットを使わなければ上の5定数がそのまま使われる。
+MODEL_SLOTS = ("transcribe", "transcribe_english", "rewrite", "translate", "notebooklm")
+
+PRESETS: dict[str, dict[str, str]] = {
+    "openai": {
+        "transcribe":         "gpt-transcribe",
+        "transcribe_english": "gpt-5.6-luna",
+        "rewrite":            "gpt-5.6-luna",
+        "translate":          "gpt-5.6-luna",
+        "notebooklm":         "gpt-5.6-luna",
+    },
+    "gemini": {
+        "transcribe":         "gemini-2.5-flash",
+        "transcribe_english": "gemini-2.5-flash",  # Gemini 経路では使われない
+        "rewrite":            "gemini-3.5-flash",
+        "translate":          "gemini-2.5-flash",
+        "notebooklm":         "gemini-2.5-flash",
+    },
+}
+
+
+def current_models() -> dict[str, str]:
+    """上の5定数を slot 名の dict にして返す（プリセット未指定時の既定）。"""
+    return {
+        "transcribe":         TRANSCRIBE_MODEL,
+        "transcribe_english": TRANSCRIBE_ENGLISH_MODEL,
+        "rewrite":            REWRITE_MODEL,
+        "translate":          TRANSLATE_MODEL,
+        "notebooklm":         NOTEBOOKLM_PROMPT_MODEL,
+    }
+
+
+def resolve_models(provider: str | None = None, **overrides: str | None) -> dict[str, str]:
+    """実際に使うモデルを決める。
+
+    優先順位: 個別指定 > プリセット > config.py の5定数。
+
+    Args:
+        provider: PRESETS のキー（"openai" / "gemini"）。None なら5定数をそのまま使う。
+        **overrides: slot 名 → モデル名。None の項目は無視する。
+    """
+    if provider is not None and provider not in PRESETS:
+        raise ValueError(f"未知のプロバイダ: {provider}（有効: {', '.join(PRESETS)}）")
+    models = dict(PRESETS[provider]) if provider else current_models()
+    for slot, model in overrides.items():
+        if model:
+            if slot not in MODEL_SLOTS:
+                raise ValueError(f"未知のスロット: {slot}（有効: {', '.join(MODEL_SLOTS)}）")
+            models[slot] = model
+    return models
+
+
 REWRITE_MAX_CHARS = 7000  # ナレーションを ≤7000 文字のパートに自然な切れ目で分割させる
 
 # OpenAI /v1/audio/transcriptions のアップロード上限（25MB）。

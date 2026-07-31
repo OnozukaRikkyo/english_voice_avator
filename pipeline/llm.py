@@ -159,17 +159,21 @@ def generate_json(model: str, prompt: str, schema: dict, schema_name: str = "res
 
 # ── 文字起こし ────────────────────────────────────────────────────────────────
 
-def transcribe(model: str, mp3: Path) -> str:
+def transcribe(model: str, mp3: Path, *, english_model: str | None = None) -> str:
     """音声を英語テキストにして返す。出力は必ず英語。
 
     Gemini はマルチモーダルのプロンプトで直接「英語で出せ」を指示できるが、
     OpenAI の gpt-transcribe は専用の音声認識モデルで、必ず話された言語のまま
     逐語で書き起こす（prompt でも language でも英語化できないことを実測で確認済み）。
     そのため OpenAI 経路では書き起こしのあとに英語化のテキスト変換を1回挟む。
+
+    Args:
+        english_model: 英語化に使うモデル。OpenAI 経路でのみ使う。
+                       None なら config.TRANSCRIBE_ENGLISH_MODEL。
     """
     if is_openai(model):
         raw = _transcribe_openai(model, mp3)
-        return _ensure_english(raw)
+        return _ensure_english(raw, english_model or TRANSCRIBE_ENGLISH_MODEL)
     return _transcribe_gemini(model, mp3)
 
 
@@ -261,10 +265,7 @@ def _duration_seconds(mp3: Path) -> float:
     return float(out.stdout.decode().strip())
 
 
-def _ensure_english(text: str) -> str:
-    """英語でなければ英訳する。すでに英語ならほぼそのまま返る。
-
-    使うモデルは config.TRANSCRIBE_ENGLISH_MODEL（これも gpt-/gemini- 両対応）。
-    """
-    print(f"    英語化: {TRANSCRIBE_ENGLISH_MODEL} ({provider(TRANSCRIBE_ENGLISH_MODEL)})")
-    return generate_text(TRANSCRIBE_ENGLISH_MODEL, _PROMPT_TO_ENGLISH + text)
+def _ensure_english(text: str, model: str) -> str:
+    """英語でなければ英訳する。すでに英語ならほぼそのまま返る。"""
+    print(f"    英語化: {model} ({provider(model)})")
+    return generate_text(model, _PROMPT_TO_ENGLISH + text)

@@ -20,8 +20,12 @@ Flags:
   --force          Force re-run even if output files already exist.
   --max-chars N    Override REWRITE_MAX_CHARS for the rewrite step only.
                    Use -1 for unlimited (single file), or N for max chars per segment.
-  --model-transcribe / --model-rewrite / --model-translate MODEL
-                   Override the model for that step, for this run only.
+  --provider {openai,gemini}
+                   Switch every step to one provider for this run, using the
+                   preset in pipeline/config.py.
+  --model-transcribe / --model-transcribe-english / --model-rewrite /
+  --model-translate MODEL
+                   Override one step's model. Takes precedence over --provider.
                    The model name picks the provider: gpt-* → OpenAI, else Gemini.
                    To change it permanently, edit pipeline/config.py.
 
@@ -34,8 +38,8 @@ import sys
 import time
 
 from pipeline.config import (
-    INBOX_DIR, DATA, TRANSCRIBE_MODEL, REWRITE_MODEL, TRANSLATE_MODEL,
-    all_projects, ensure_project_dirs, slugify,
+    INBOX_DIR, DATA, MODEL_SLOTS, PRESETS,
+    all_projects, current_models, ensure_project_dirs, resolve_models, slugify,
 )
 
 # SUSPENDED: heygen / concat_video are on hold until the HeyGen on-screen caption
@@ -98,17 +102,35 @@ def main() -> None:
     )
     # モデル名がプロバイダを決める（gpt-* → OpenAI、それ以外 → Gemini）。
     # 恒久的に変えるなら pipeline/config.py 側を書き換える。
-    for step, const in (("transcribe", TRANSCRIBE_MODEL),
-                        ("rewrite", REWRITE_MODEL),
-                        ("translate", TRANSLATE_MODEL)):
+    parser.add_argument(
+        "--provider",
+        default=None,
+        choices=sorted(PRESETS),
+        help="Switch every step to one provider for this run (preset in config.py)",
+    )
+    defaults = current_models()
+    for slot in MODEL_SLOTS:
+        if slot == "notebooklm":
+            continue  # パイプライン外（./gen_notebooklm_prompt.sh で指定する）
         parser.add_argument(
-            f"--model-{step}",
+            f"--model-{slot.replace('_', '-')}",
             default=None,
-            dest=f"model_{step}",
+            dest=f"model_{slot}",
             metavar="MODEL",
-            help=f"Override the {step} model for this run (default: {const})",
+            help=f"Override the {slot} model for this run (default: {defaults[slot]})",
         )
     args = parser.parse_args()
+
+    # 優先順位: 個別指定 > --provider > config.py の定数
+    try:
+        models = resolve_models(
+            args.provider,
+            **{slot: getattr(args, f"model_{slot}")
+               for slot in MODEL_SLOTS if slot != "notebooklm"},
+        )
+    except ValueError as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
 
     steps = [s.strip() for s in args.steps.split(",")]
     unknown = set(steps) - set(ALL_STEPS)
@@ -125,6 +147,9 @@ def main() -> None:
         print("[--force] Existing output files will be overwritten.")
     if args.max_chars is not None:
         print(f"[--max-chars {args.max_chars}] Overriding REWRITE_MAX_CHARS for rewrite step.")
+    if args.provider or models != current_models():
+        label = f"--provider {args.provider}" if args.provider else "model override"
+        print(f"[{label}] " + ", ".join(f"{s}={models[s]}" for s in MODEL_SLOTS if s != "notebooklm"))
 
     t0 = time.time()
 
@@ -144,12 +169,16 @@ def main() -> None:
 
             elif step == "transcribe":
                 from pipeline import transcribe
-                transcribe.run(project, force=args.force, model=args.model_transcribe)
+                transcribe.run(
+                    project, force=args.force,
+                    model=models["transcribe"], english_model=models["transcribe_english"],
+                )
 
             elif step == "rewrite":
                 from pipeline import rewrite
                 rewrite.run(
-                    project, force=args.force, max_chars=args.max_chars, model=args.model_rewrite
+                    project, force=args.force, max_chars=args.max_chars,
+                    model=models["rewrite"],
                 )
 
             elif step == "concat_narration":
@@ -158,7 +187,7 @@ def main() -> None:
 
             elif step == "translate":
                 from pipeline import translate
-                translate.run(project, force=args.force, model=args.model_translate)
+                translate.run(project, force=args.force, model=models["translate"])
 
             # SUSPENDED — see ALL_STEPS above.
             # elif step == "heygen":

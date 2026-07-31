@@ -21,7 +21,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from pipeline import llm
-from pipeline.config import NOTEBOOKLM_PROMPT_MODEL
+from pipeline.config import NOTEBOOKLM_PROMPT_MODEL, PRESETS, resolve_models
 
 SENARIO_DIR = ROOT / "data" / "senario_jp"
 OUTPUT_DIR  = SENARIO_DIR / "prompts"
@@ -110,10 +110,20 @@ def generate_dynamic_sections(japanese_text: str, model: str = NOTEBOOKLM_PROMPT
 def main() -> None:
     parser = argparse.ArgumentParser(description="日本語資料から NotebookLM 用プロンプトを生成する")
     parser.add_argument(
-        "--model", default=NOTEBOOKLM_PROMPT_MODEL, metavar="MODEL",
+        "--provider", default=None, choices=sorted(PRESETS),
+        help="プリセットのプロバイダに切り替える（pipeline/config.py の PRESETS）",
+    )
+    parser.add_argument(
+        "--model-notebooklm", default=None, dest="model_notebooklm", metavar="MODEL",
         help=f"使用モデル（gpt-* なら OpenAI、それ以外は Gemini。既定: {NOTEBOOKLM_PROMPT_MODEL}）",
     )
     args = parser.parse_args()
+
+    try:
+        model = resolve_models(args.provider, notebooklm=args.model_notebooklm)["notebooklm"]
+    except ValueError as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -129,13 +139,13 @@ def main() -> None:
         japanese_text = read_document(src)
         print(f"  {len(japanese_text)} chars extracted")
 
-        print(f"  Generating domain-adapted prompt [{args.model} / {llm.provider(args.model)}]...")
-        prompt = generate_dynamic_sections(japanese_text, model=args.model)
+        print(f"  Generating domain-adapted prompt [{model} / {llm.provider(model)}]...")
+        prompt = generate_dynamic_sections(japanese_text, model=model)
 
         # 空の応答をそのまま書き出すと 0 バイトのプロンプトができてしまう。
         # 既存ファイルも壊さないよう、書かずにスキップする。
         if not prompt:
-            print(f"  ERROR: {args.model} が空の応答を返しました。書き出しをスキップします。", file=sys.stderr)
+            print(f"  ERROR: {model} が空の応答を返しました。書き出しをスキップします。", file=sys.stderr)
             failed += 1
             continue
 
