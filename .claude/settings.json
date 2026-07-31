@@ -80,6 +80,11 @@
           },
           {
             "type": "command",
+            "command": "cd /home/sonozuka/english_voice/avator && .venv/bin/python -m pytest -q >/tmp/claude-pytest.log 2>&1 || { tail -12 /tmp/claude-pytest.log >&2; exit 2; }",
+            "statusMessage": "テスト実行中..."
+          },
+          {
+            "type": "command",
             "command": "cd /home/sonozuka/english_voice/avator && .venv/bin/python tools/check_design.py",
             "statusMessage": "Checking data layout..."
           }

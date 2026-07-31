@@ -33,6 +33,20 @@ for arg in "$@"; do
     esac
 done
 
+# 音声を後ろに書いた場合（./run_audio.sh --force audio.m4a）、それは
+# run_pipeline.py へのオプションとして扱われてしまう。位置の誤りだと指摘する。
+# 音声を指定しない使い方（inbox をまとめて処理）は正当なので、
+# 「引数はあるが音声がない」では判定せず、音声らしき引数の混入だけを見る。
+for a in ${ARGS[@]+"${ARGS[@]}"}; do
+    case "${a,,}" in
+        *.m4a|*.mp4|*.mp3)
+            echo "ERROR: 音声パスは最初の引数に指定してください（オプションはその後ろ）" >&2
+            echo "  誤: $0 $*" >&2
+            echo "  正: $0 $a ${ARGS[*]/$a/}" >&2
+            exit 1 ;;
+    esac
+done
+
 source .venv/bin/activate
 mkdir -p data/inbox
 

@@ -102,3 +102,61 @@ def test_a_plain_error_passes_through():
     """分類できないものは握り潰さず、呼び出し元の raise に任せる。"""
     check_openai(ValueError("something went wrong"))
     check_gemini(ValueError("something went wrong"))
+
+
+# ── reasoning 非対応モデルの検出 ────────────────────────────────────────────
+
+class BadRequest(Exception):
+    """OpenAI SDK の BadRequestError を模したもの。"""
+
+    def __init__(self, code, param, msg="bad request"):
+        super().__init__(msg)
+        self.status_code = 400
+        self.code = code
+        self.param = param
+
+
+def test_unsupported_reasoning_is_detected():
+    """gpt-4.1-mini に effort を渡したときに実際に返る形。"""
+    from pipeline.llm import is_unsupported_reasoning
+    assert is_unsupported_reasoning(BadRequest("unsupported_parameter", "reasoning.effort"))
+
+
+def test_detection_reads_the_body_when_attributes_are_absent():
+    from pipeline.llm import is_unsupported_reasoning
+    e = Exception("bad request")
+    e.status_code = 400
+    e.body = {"code": "unsupported_parameter", "param": "reasoning.effort"}
+    assert is_unsupported_reasoning(e)
+
+
+def test_detection_reads_a_nested_error_body():
+    from pipeline.llm import is_unsupported_reasoning
+    e = Exception("bad request")
+    e.status_code = 400
+    e.body = {"error": {"code": "unsupported_parameter", "param": "reasoning.effort"}}
+    assert is_unsupported_reasoning(e)
+
+
+def test_a_different_400_is_not_retried():
+    """不正なモデル名などは reasoning を外しても直らない。再試行してはいけない。"""
+    from pipeline.llm import is_unsupported_reasoning
+    assert not is_unsupported_reasoning(BadRequest("model_not_found", "model"))
+
+
+def test_unsupported_parameter_on_another_field_is_not_retried():
+    from pipeline.llm import is_unsupported_reasoning
+    assert not is_unsupported_reasoning(BadRequest("unsupported_parameter", "temperature"))
+
+
+def test_a_429_is_not_treated_as_unsupported_reasoning():
+    from pipeline.llm import is_unsupported_reasoning
+    assert not is_unsupported_reasoning(WithStatus(429))
+
+
+def test_message_wording_alone_does_not_trigger_a_retry():
+    """文言依存をやめたことの回帰テスト。"""
+    from pipeline.llm import is_unsupported_reasoning
+    assert not is_unsupported_reasoning(
+        RuntimeError("reasoning is not supported with this model")
+    )

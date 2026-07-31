@@ -1,0 +1,21 @@
+name: tests
+
+# tests/ は API を一切呼ばないため、シークレットも課金も不要。
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      # 本番と同じ依存で確かめる（テストだけなら pytest と python-dotenv で足りるが、
+      # import 漏れは本番の依存を入れて初めて分かる）
+      - run: pip install -r requirements.txt
+
+      - run: python -m pytest -q

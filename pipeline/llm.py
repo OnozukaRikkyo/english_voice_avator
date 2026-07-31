@@ -22,7 +22,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from . import gemini_client, openai_client
+from . import api_status, gemini_client, openai_client
 from .config import OPENAI_AUDIO_MAX_BYTES
 
 # ── 文字起こし用プロンプト ────────────────────────────────────────────────────
@@ -43,6 +43,26 @@ def provider(model: str) -> str:
     return "OpenAI" if is_openai(model) else "Gemini"
 
 
+def is_unsupported_reasoning(e: Exception) -> bool:
+    """reasoning 非対応モデルによる 400 かどうか。
+
+    メッセージ本文は見ない。OpenAI が文言を変えても壊れないよう、
+    例外が持つ構造化フィールドだけで判定する:
+        status_code=400, code='unsupported_parameter', param='reasoning.effort'
+    """
+    if api_status.status_code(e) != 400:
+        return False
+    code = getattr(e, "code", None)
+    param = getattr(e, "param", None)
+    if code is None or param is None:  # SDK が属性を持たない場合の保険
+        body = getattr(e, "body", None)
+        if isinstance(body, dict):
+            body = body.get("error", body)
+            code = code or body.get("code")
+            param = param or body.get("param")
+    return code == "unsupported_parameter" and str(param or "").startswith("reasoning")
+
+
 def _openai_create(**kwargs):
     """Responses API を呼ぶ。reasoning 非対応モデルなら外して1度だけ再試行する。
 
@@ -54,7 +74,7 @@ def _openai_create(**kwargs):
     try:
         return client.responses.create(**kwargs)
     except Exception as e:
-        if "reasoning" in kwargs and "reasoning" in str(e) and "not supported" in str(e):
+        if "reasoning" in kwargs and is_unsupported_reasoning(e):
             kwargs.pop("reasoning")
             print("    [info] このモデルは reasoning 非対応のため指定を外して再試行します")
             return client.responses.create(**kwargs)
