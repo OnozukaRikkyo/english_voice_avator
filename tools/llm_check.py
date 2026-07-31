@@ -24,7 +24,6 @@ from pipeline.config import (
 # slot → (表示名, 定数名, 実行時に上書きする方法)
 _SLOT_INFO = {
     "transcribe":         ("transcribe", "TRANSCRIBE_MODEL",         "./run.sh --model-transcribe MODEL"),
-    "transcribe_english": ("  └ 英語化", "TRANSCRIBE_ENGLISH_MODEL", "./run.sh --model-transcribe-english MODEL"),
     "rewrite":            ("rewrite",    "REWRITE_MODEL",            "./run.sh --model-rewrite MODEL"),
     "translate":          ("translate",  "TRANSLATE_MODEL",          "./run.sh --model-translate MODEL"),
     "notebooklm":         ("notebooklm", "NOTEBOOKLM_PROMPT_MODEL",  "./gen_notebooklm_prompt.sh --model-notebooklm MODEL"),
@@ -42,9 +41,7 @@ def show_config(models: dict[str, str], provider: str | None) -> None:
     for slot in MODEL_SLOTS:
         step, const, _ = _SLOT_INFO[slot]
         model = models[slot]
-        unused = slot == "transcribe_english" and not llm.is_openai(models["transcribe"])
-        note = "  ← Gemini経路では未使用" if unused else ""
-        print(f"  {step:<12} {model:<22} {llm.provider(model):<7} {const}{note}")
+        print(f"  {step:<12} {model:<22} {llm.provider(model):<7} {const}")
 
     print("\n=== 全工程をまとめて切り替える ===")
     for name in sorted(PRESETS):
@@ -56,8 +53,7 @@ def show_config(models: dict[str, str], provider: str | None) -> None:
         print(f"  {step:<12} {how}")
 
     # 実際に使われるモデルだけを対象にキーの過不足を見る
-    active = [models[s] for s in MODEL_SLOTS
-              if not (s == "transcribe_english" and not llm.is_openai(models["transcribe"]))]
+    active = [models[s] for s in MODEL_SLOTS]
     needed = {llm.provider(m) for m in active}
     missing = [
         p for p in needed

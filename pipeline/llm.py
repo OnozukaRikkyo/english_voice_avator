@@ -23,30 +23,14 @@ import tempfile
 from pathlib import Path
 
 from . import gemini_client, openai_client
-from .config import OPENAI_AUDIO_MAX_BYTES, TRANSCRIBE_ENGLISH_MODEL
+from .config import OPENAI_AUDIO_MAX_BYTES
 
 # ── 文字起こし用プロンプト ────────────────────────────────────────────────────
 
-# Gemini 経路: マルチモーダルなので直接「英語で出せ」と指示できる。
-_PROMPT_TRANSCRIBE_EN = (
-    "Transcribe this audio. The output MUST be in English, and in English only.\n"
-    "- If the audio is spoken in English, transcribe it verbatim.\n"
-    "- If the audio is spoken in any other language, translate it into English "
-    "as you transcribe. Do NOT output the original language.\n"
-    "Cover the entire audio from start to finish — do not summarize or omit anything.\n"
-    "Output the English text only: no preamble, no language labels, no commentary."
-)
-
-# OpenAI 経路: gpt-transcribe が原語で返した本文を英語化する後段プロンプト。
-_PROMPT_TO_ENGLISH = (
-    "Below is a raw speech-to-text transcript. Return it in English.\n"
-    "- If it is already English, return it unchanged apart from obvious "
-    "speech-recognition typos.\n"
-    "- If it is in any other language, translate the whole thing into English.\n"
-    "Keep every sentence — do not summarize, condense, or omit anything. "
-    "Preserve proper nouns using their standard English spellings.\n"
-    "Output the English text only: no preamble, no notes.\n\n"
-)
+# 入力音声は英語である前提。書き起こしはそのまま逐語で行い、変換は挟まない。
+# 初版 3cc7377 から b217aec まで使われていたプロンプトをそのまま復元したもの。
+# （OpenAI の gpt-transcribe は元から逐語なので、Gemini 経路だけ指示が要る）
+_PROMPT_TRANSCRIBE = "This audio is in English. Please transcribe it in English. Output the text only."
 
 
 def is_openai(model: str) -> bool:
@@ -159,21 +143,15 @@ def generate_json(model: str, prompt: str, schema: dict, schema_name: str = "res
 
 # ── 文字起こし ────────────────────────────────────────────────────────────────
 
-def transcribe(model: str, mp3: Path, *, english_model: str | None = None) -> str:
-    """音声を英語テキストにして返す。出力は必ず英語。
+def transcribe(model: str, mp3: Path) -> str:
+    """英語音声を逐語で書き起こして返す。
 
-    Gemini はマルチモーダルのプロンプトで直接「英語で出せ」を指示できるが、
-    OpenAI の gpt-transcribe は専用の音声認識モデルで、必ず話された言語のまま
-    逐語で書き起こす（prompt でも language でも英語化できないことを実測で確認済み）。
-    そのため OpenAI 経路では書き起こしのあとに英語化のテキスト変換を1回挟む。
-
-    Args:
-        english_model: 英語化に使うモデル。OpenAI 経路でのみ使う。
-                       None なら config.TRANSCRIBE_ENGLISH_MODEL。
+    入力は英語である前提なので、変換は一切挟まない（1音声につきAPI呼び出しは1回）。
+    OpenAI の gpt-transcribe は元から話された言語のまま逐語で返すため、
+    そのまま使える。
     """
     if is_openai(model):
-        raw = _transcribe_openai(model, mp3)
-        return _ensure_english(raw, english_model or TRANSCRIBE_ENGLISH_MODEL)
+        return _transcribe_openai(model, mp3)
     return _transcribe_gemini(model, mp3)
 
 
@@ -190,7 +168,7 @@ def _transcribe_gemini(model: str, mp3: Path) -> str:
         while uploaded.state.name == "PROCESSING":
             time.sleep(5)
             uploaded = client.files.get(name=uploaded.name)
-        resp = client.models.generate_content(model=model, contents=[uploaded, _PROMPT_TRANSCRIBE_EN])
+        resp = client.models.generate_content(model=model, contents=[uploaded, _PROMPT_TRANSCRIBE])
         client.files.delete(name=uploaded.name)
     except Exception as e:
         check_api_error(e)
@@ -263,9 +241,3 @@ def _duration_seconds(mp3: Path) -> float:
         capture_output=True, check=True,
     )
     return float(out.stdout.decode().strip())
-
-
-def _ensure_english(text: str, model: str) -> str:
-    """英語でなければ英訳する。すでに英語ならほぼそのまま返る。"""
-    print(f"    英語化: {model} ({provider(model)})")
-    return generate_text(model, _PROMPT_TO_ENGLISH + text)

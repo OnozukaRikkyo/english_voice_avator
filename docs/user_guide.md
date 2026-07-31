@@ -37,12 +37,22 @@ HEYGEN_API_KEY=...        # 動画生成を再開するときのみ
 ## 使い方A: 音声 → 台本
 
 ```bash
+./run_batch.sh path/to/audio.m4a     # 音声を指定して1本処理する
+```
+
+何本も続けて処理する場合はこれが一番手軽です。処理後は inbox から
+自動で片付けられるので、次のファイルを指定してまた実行するだけです。
+同名プロジェクトが既にある場合は上書きせずエラーで止まります。
+
+inbox に置いてから実行する従来の方法も使えます。
+
+```bash
 cp your_audio.m4a data/inbox/    # 1. 置く
 ./run.sh                          # 2. 実行する
 ```
 
 `convert → transcribe → rewrite → concat_narration → translate` が順に動きます。
-音声の言語は問いません（英語以外は文字起こしの時点で英訳されます）。
+入力音声は英語である前提です。
 
 `heygen` / `concat_video` は保留中で実行されません（詳細は `video_guide.md`）。
 

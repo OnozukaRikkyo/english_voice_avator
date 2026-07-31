@@ -12,7 +12,6 @@
 | 定数 | モデル | プロバイダ |
 |------|--------|-----------|
 | `TRANSCRIBE_MODEL` | `gpt-transcribe` | OpenAI |
-| `TRANSCRIBE_ENGLISH_MODEL` | `gemini-3.5-flash-lite` | Gemini |
 | `REWRITE_MODEL` | `gemini-3.5-flash` | Gemini |
 | `TRANSLATE_MODEL` | `gemini-3.6-flash` | Gemini |
 
@@ -73,16 +72,10 @@ TRANSCRIBE_MODEL = _model("TRANSCRIBE_MODEL", "gemini-3.6-flash")   # Gemini
 ./run_llm_check.sh --models           # 利用可能なモデル一覧
 ```
 
-## 文字起こしの注意
+## 文字起こしについて
 
-`transcript/` は**常に英語**という約束ですが、実現方法が経路で違います。
-
-- **Gemini 経路** — マルチモーダルなので「英語で出せ」と直接指示でき、1回で終わります。
-- **OpenAI 経路** — `gpt-transcribe` は専用の音声認識モデルで、
-  **必ず話された言語のまま逐語で書き起こします**。
-  `prompt` でも `language=en` でも英語化できないことを実 API で確認済みです。
-  そのため書き起こしの後に `gemini-3.5-flash-lite` で英語化を1回挟みます
-  （`TRANSCRIBE_ENGLISH_MODEL`）。英語音声なら実質そのまま返ります。
+入力音声は英語である前提です。書き起こしは逐語で行い、言語変換は挟みません
+（1音声につきAPI呼び出しは1回）。
 
 OpenAI のアップロード上限は25MBです。超える音声は `pipeline/llm.py` が
 ffmpeg で時間分割して個別に送り、結果を連結します。
@@ -97,10 +90,6 @@ ffmpeg で時間分割して個別に送り、結果を連結します。
 | transcribe | 高 | 固有名詞の聞き取り。誤ると後段すべてが誤った前提で動き、取り返しがつかない |
 | notebooklm | 中〜高 | 検索の使い分けと、一般読者が分からない語だけを選ぶ取捨選択 |
 | translate | 中 | 翻訳自体は機械的だが、NHK準拠の固有名詞表記と論調の維持が要る |
-| transcribe_english | 低 | 原語→英語の逐語変換のみ。判断も創作もない |
-
-`transcribe_english` だけ意図的に lite モデルを使っています。
-21,578字の実データで保持率100.0%（欠落なし）を確認済みです。
 
 translate を lite に落とすのは推奨しません。実測で `gemini-2.5-flash-lite` は
 改行構造が123行→8行に崩れ、固有名詞も落ちました。

@@ -96,6 +96,38 @@ Return a JSON array of narration segments for AI voice synthesis:
 """
 
 
+_MAX_ATTEMPTS = 3
+_MIN_RATIO = 0.30  # ナレーション合計が transcript のこの割合を下回ったら生成失敗とみなす
+
+
+def _validate(paragraphs: list[dict], src_chars: int) -> str | None:
+    """生成結果を検証する。問題なければ None、あれば理由の文字列を返す。
+
+    プロンプトは「要約するな・全網羅せよ」と要求しているので、
+    合計が入力より極端に短ければ途中で切れたか手を抜いたかのどちらか。
+    """
+    if not paragraphs:
+        return "空の結果が返りました"
+
+    for p in paragraphs:
+        idx, t = p.get("index"), (p.get("text") or "").strip()
+        if len(t) < 50:
+            return f"part {idx:02d} が短すぎます（{len(t)}字）"
+        # 途中で切れた SSML の典型: 閉じタグが無い / タグの途中で終わっている
+        if not t.endswith("</speak>"):
+            return f"part {idx:02d} が </speak> で終わっていません（末尾: {t[-40:]!r}）"
+        if t.count("<speak>") != 1:
+            return f"part {idx:02d} の <speak> が {t.count('<speak>')} 個あります"
+
+    total = sum(len((p.get("text") or "").strip()) for p in paragraphs)
+    if total < src_chars * _MIN_RATIO:
+        return (
+            f"ナレーション合計 {total:,}字 が transcript {src_chars:,}字 の "
+            f"{total / src_chars * 100:.0f}%しかありません（下限 {_MIN_RATIO * 100:.0f}%）"
+        )
+    return None
+
+
 def _build_prompt(max_chars: int, transcript: str) -> str:
     if max_chars == -1:
         return _PROMPT_UNLIMITED + "\n\n" + transcript
@@ -123,20 +155,25 @@ def rewrite_file(
         },
     }
 
-    raw = llm.generate_json(model, _build_prompt(max_chars, text), schema, schema_name="narration_parts")
+    prompt = _build_prompt(max_chars, text)
+    paragraphs: list[dict] = []
 
-    paragraphs = sorted(json.loads(raw or "[]"), key=lambda x: x["index"])
-    if not paragraphs:
-        raise RuntimeError(f"Gemini returned empty result for {txt_path.name}")
+    # 出力が途中で切れることが実際に起きる（`<break time=` で終わる SSML が
+    # 生成された）。壊れた台本をそのまま翻訳まで流さないよう検証し、駄目なら作り直す。
+    for attempt in range(1, _MAX_ATTEMPTS + 1):
+        raw = llm.generate_json(model, prompt, schema, schema_name="narration_parts")
+        paragraphs = sorted(json.loads(raw or "[]"), key=lambda x: x["index"])
+        problem = _validate(paragraphs, len(text))
+        if problem is None:
+            break
+        if attempt == _MAX_ATTEMPTS:
+            raise RuntimeError(f"{txt_path.name}: {problem}（{_MAX_ATTEMPTS}回試行）")
+        print(f"    [retry {attempt}/{_MAX_ATTEMPTS - 1}] {problem}")
 
     results: list[Path] = []
     for p in paragraphs:
         idx = p["index"]
         part_text = p["text"].strip()
-        if len(part_text) < 50:
-            raise RuntimeError(
-                f"Part {idx:02d} of {txt_path.name} is too short ({len(part_text)} chars) — likely a generation error"
-            )
         out = output_dir / f"{txt_path.stem}_part{idx:02d}.txt"
         out.write_text(part_text, encoding="utf-8")
         print(f"    part {idx:02d}: {len(part_text)} chars → {out.name}")

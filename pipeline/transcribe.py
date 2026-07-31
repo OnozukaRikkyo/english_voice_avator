@@ -16,14 +16,13 @@ _IN, _OUT = STEP_IO["transcribe"]
 
 def run(
     project: str, *, force: bool = False,
-    model: str | None = None, english_model: str | None = None,
+    model: str | None = None,
 ) -> list[Path]:
     """Run transcribe for a project.
 
     Args:
         force: 既存の出力を消して再実行する。
         model: config.TRANSCRIBE_MODEL を上書きする（gpt-* なら OpenAI 経路）。
-        english_model: config.TRANSCRIBE_ENGLISH_MODEL を上書きする（OpenAI 経路のみ使用）。
     """
     active_model = model or TRANSCRIBE_MODEL
     src_dir = stage_dir(project, _IN)
@@ -41,7 +40,7 @@ def run(
             out.unlink()
 
         print(f"  Transcribing: {mp3.name}  [{active_model} / {llm.provider(active_model)}]")
-        text = llm.transcribe(active_model, mp3, english_model=english_model)
+        text = llm.transcribe(active_model, mp3)
         out.write_text(text, encoding="utf-8")
         print(f"  → {out.name} ({len(text)} chars)")
         results.append(out)

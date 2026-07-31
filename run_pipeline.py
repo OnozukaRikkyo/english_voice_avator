@@ -23,8 +23,7 @@ Flags:
   --provider {openai,gemini}
                    Switch every step to one provider for this run, using the
                    preset in pipeline/config.py.
-  --model-transcribe / --model-transcribe-english / --model-rewrite /
-  --model-translate MODEL
+  --model-transcribe / --model-rewrite / --model-translate MODEL
                    Override one step's model. Takes precedence over --provider.
                    The model name picks the provider: gpt-* → OpenAI, else Gemini.
                    To change it permanently, edit pipeline/config.py.
@@ -171,7 +170,7 @@ def main() -> None:
                 from pipeline import transcribe
                 transcribe.run(
                     project, force=args.force,
-                    model=models["transcribe"], english_model=models["transcribe_english"],
+                    model=models["transcribe"],
                 )
 
             elif step == "rewrite":

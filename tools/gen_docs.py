@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT))
 from pipeline.config import (
     PRESETS,
     STEP_IO, NOTEBOOKLM_PROMPT_MODEL,
-    TRANSCRIBE_MODEL, TRANSCRIBE_ENGLISH_MODEL, REWRITE_MODEL, TRANSLATE_MODEL,
+    TRANSCRIBE_MODEL, REWRITE_MODEL, TRANSLATE_MODEL,
 )
 from run_pipeline import ALL_STEPS  # active steps only — suspended ones are commented out there
 
@@ -81,12 +81,22 @@ def gen_user_guide() -> str:
         "## 使い方A: 音声 → 台本\n"
         "\n"
         "```bash\n"
+        "./run_batch.sh path/to/audio.m4a     # 音声を指定して1本処理する\n"
+        "```\n"
+        "\n"
+        "何本も続けて処理する場合はこれが一番手軽です。処理後は inbox から\n"
+        "自動で片付けられるので、次のファイルを指定してまた実行するだけです。\n"
+        "同名プロジェクトが既にある場合は上書きせずエラーで止まります。\n"
+        "\n"
+        "inbox に置いてから実行する従来の方法も使えます。\n"
+        "\n"
+        "```bash\n"
         "cp your_audio.m4a data/inbox/    # 1. 置く\n"
         "./run.sh                          # 2. 実行する\n"
         "```\n"
         "\n"
         f"`{steps_list}` が順に動きます。\n"
-        "音声の言語は問いません（英語以外は文字起こしの時点で英訳されます）。\n"
+        "入力音声は英語である前提です。\n"
         f"{suspended}"
         "\n"
         "できあがるもの:\n"
@@ -185,8 +195,7 @@ def gen_video_guide() -> str:
         "\n"
         "対応フォーマット: `.m4a` / `.mp4` / `.mp3`\n"
         "\n"
-        "音声の言語は問いません。英語以外の音声は文字起こしの時点で英訳され、\n"
-        "`transcript/` には**常に英語**が出力されます。\n"
+        "入力音声は英語である前提です（逐語で書き起こします）。\n"
         "\n"
         "### 2. パイプラインを実行する\n"
         "\n"
@@ -287,7 +296,6 @@ def gen_model_guide() -> str:
         f"| `{const}` | `{model}` | {_provider(model)} |"
         for const, model in (
             ("TRANSCRIBE_MODEL", TRANSCRIBE_MODEL),
-            ("TRANSCRIBE_ENGLISH_MODEL", TRANSCRIBE_ENGLISH_MODEL),
             ("REWRITE_MODEL", REWRITE_MODEL),
             ("TRANSLATE_MODEL", TRANSLATE_MODEL),
         )
@@ -364,16 +372,10 @@ def gen_model_guide() -> str:
         "./run_llm_check.sh --models           # 利用可能なモデル一覧\n"
         "```\n"
         "\n"
-        "## 文字起こしの注意\n"
+        "## 文字起こしについて\n"
         "\n"
-        "`transcript/` は**常に英語**という約束ですが、実現方法が経路で違います。\n"
-        "\n"
-        "- **Gemini 経路** — マルチモーダルなので「英語で出せ」と直接指示でき、1回で終わります。\n"
-        "- **OpenAI 経路** — `gpt-transcribe` は専用の音声認識モデルで、\n"
-        "  **必ず話された言語のまま逐語で書き起こします**。\n"
-        "  `prompt` でも `language=en` でも英語化できないことを実 API で確認済みです。\n"
-        f"  そのため書き起こしの後に `{TRANSCRIBE_ENGLISH_MODEL}` で英語化を1回挟みます\n"
-        "  （`TRANSCRIBE_ENGLISH_MODEL`）。英語音声なら実質そのまま返ります。\n"
+        "入力音声は英語である前提です。書き起こしは逐語で行い、言語変換は挟みません\n"
+        "（1音声につきAPI呼び出しは1回）。\n"
         "\n"
         "OpenAI のアップロード上限は25MBです。超える音声は `pipeline/llm.py` が\n"
         "ffmpeg で時間分割して個別に送り、結果を連結します。\n"
@@ -388,10 +390,6 @@ def gen_model_guide() -> str:
         "| transcribe | 高 | 固有名詞の聞き取り。誤ると後段すべてが誤った前提で動き、取り返しがつかない |\n"
         "| notebooklm | 中〜高 | 検索の使い分けと、一般読者が分からない語だけを選ぶ取捨選択 |\n"
         "| translate | 中 | 翻訳自体は機械的だが、NHK準拠の固有名詞表記と論調の維持が要る |\n"
-        "| transcribe_english | 低 | 原語→英語の逐語変換のみ。判断も創作もない |\n"
-        "\n"
-        "`transcribe_english` だけ意図的に lite モデルを使っています。\n"
-        "21,578字の実データで保持率100.0%（欠落なし）を確認済みです。\n"
         "\n"
         "translate を lite に落とすのは推奨しません。実測で `gemini-2.5-flash-lite` は\n"
         "改行構造が123行→8行に崩れ、固有名詞も落ちました。\n"

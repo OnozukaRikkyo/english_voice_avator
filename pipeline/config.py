@@ -63,15 +63,6 @@ TRANSCRIBE_MODEL = _model("TRANSCRIBE_MODEL", "gpt-transcribe")      # 音声 �
 REWRITE_MODEL    = _model("REWRITE_MODEL",    "gemini-3.5-flash")    # 文字起こし → ナレーション台本
 TRANSLATE_MODEL  = _model("TRANSLATE_MODEL",  "gemini-3.6-flash")    # 英語ナレーション → 日本語
 
-# gpt-transcribe は専用の音声認識モデルで、必ず話された言語のまま逐語で書き起こす
-# （prompt でも language でも英語化できないことを実測で確認済み）。そのため
-# OpenAI 経路のみ、書き起こしのあとにこのモデルで英語化を1回挟む。
-# Gemini 経路は直接英語で書き起こせるので使われない。
-#
-# ここは原語→英語の逐語変換だけで判断も創作も要らないため、意図的に安いモデルを使う。
-# 実測: 21,578字の入力に対し flash-lite でも保持率100.0%（欠落なし）。
-TRANSCRIBE_ENGLISH_MODEL = _model("TRANSCRIBE_ENGLISH_MODEL", "gemini-3.5-flash-lite")
-
 # tools/gen_notebooklm_prompt.py 専用。用語の正式な英語表記を実際に検索させるため
 # Web検索ツールを有効にして呼ぶ（OpenAI: web_search / Gemini: Google検索グラウンディング）。
 # 上と同じ規約で切り替わる。
@@ -86,19 +77,17 @@ NOTEBOOKLM_PROMPT_MODEL = _model("NOTEBOOKLM_PROMPT_MODEL", "gpt-5.6-luna")
 #   ./run.sh --provider openai --model-rewrite gemini-3.5-flash   個別指定が優先
 #
 # プリセットを使わなければ上の5定数がそのまま使われる。
-MODEL_SLOTS = ("transcribe", "transcribe_english", "rewrite", "translate", "notebooklm")
+MODEL_SLOTS = ("transcribe", "rewrite", "translate", "notebooklm")
 
 PRESETS: dict[str, dict[str, str]] = {
     "openai": {
         "transcribe":         "gpt-transcribe",
-        "transcribe_english": "gpt-5.6-luna",
         "rewrite":            "gpt-5.6-luna",
         "translate":          "gpt-5.6-luna",
         "notebooklm":         "gpt-5.6-luna",
     },
     "gemini": {
         "transcribe":         "gemini-3.6-flash",
-        "transcribe_english": "gemini-3.5-flash-lite",  # Gemini 経路では使われない
         "rewrite":            "gemini-3.5-flash",
         "translate":          "gemini-3.6-flash",
         "notebooklm":         "gemini-3.6-flash",
@@ -110,7 +99,6 @@ def current_models() -> dict[str, str]:
     """上の5定数を slot 名の dict にして返す（プリセット未指定時の既定）。"""
     return {
         "transcribe":         TRANSCRIBE_MODEL,
-        "transcribe_english": TRANSCRIBE_ENGLISH_MODEL,
         "rewrite":            REWRITE_MODEL,
         "translate":          TRANSLATE_MODEL,
         "notebooklm":         NOTEBOOKLM_PROMPT_MODEL,
