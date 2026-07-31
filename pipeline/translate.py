@@ -8,7 +8,7 @@ like _zh.txt, _ko.txt without ambiguity.
 """
 from pathlib import Path
 
-from . import llm
+from . import artifact, llm
 from .config import TRANSLATE_MODEL, stage_dir, all_projects, STEP_IO
 
 _IN, _OUT = STEP_IO["translate"]
@@ -41,7 +41,11 @@ def translate_file(src: Path, dst: Path, model: str = TRANSLATE_MODEL) -> Path:
     print(f"  Translating: {src.name} ({len(text)} chars)  [{model} / {llm.provider(model)}]")
 
     translated = llm.generate_text(model, _PROMPT + text)
-    dst.write_text(translated, encoding="utf-8")
+    # 英→日は概ね入力の30〜50%の文字数に収まる。20%を下回るのは訳し漏れか途中切れ。
+    artifact.write_checked(
+        dst, translated, min_chars=100,
+        src_chars=len(text), min_ratio=0.20, label=f"translate/{src.name}",
+    )
     print(f"    → {dst.name} ({len(translated)} chars)")
     return dst
 

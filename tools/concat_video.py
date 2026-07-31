@@ -58,7 +58,14 @@ def concat_video(project: str, *, force: bool = False) -> list[Path]:
             ratio    = out_mb / parts_mb if parts_mb else 0
             print(f"    → {out.name} ({out_mb:.1f} MB / parts total {parts_mb:.1f} MB, ratio {ratio:.2f})")
             if ratio < 0.95:
-                print(f"  WARNING: output is only {ratio*100:.0f}% of parts total — possible concat failure", file=sys.stderr)
+                # 壊れた出力を残すと、次回実行時に out.exists() が真になり
+                # [skip] されて失敗が固定化する。消してから報告する。
+                out.unlink(missing_ok=True)
+                print(
+                    f"  ERROR: 出力がパーツ合計の {ratio*100:.0f}% しかありません"
+                    f"（結合失敗の可能性）。{out.name} を削除しました",
+                    file=sys.stderr,
+                )
             else:
                 results.append(out)
         except subprocess.CalledProcessError as e:

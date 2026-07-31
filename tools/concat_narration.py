@@ -7,11 +7,33 @@ Output: data/{project}/narration/{stem}_full.txt
 Debug: PIPELINE_DEBUG=1 python tools/concat_narration.py  (first project only)
 """
 import os
+import re
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from pipeline.config import all_projects, stage_dir, parts_dir
+
+
+_SPEAK_WRAPPER = re.compile(r"^\s*<speak>\s*|\s*</speak>\s*$")
+
+# パートの境目は元々トピックの切れ目なので、段落相当の間を入れる
+_PART_BREAK = '\n<break time="1.0s"/>\n'
+
+
+def _merge_ssml(parts: list[Path]) -> str:
+    """パートを1つの妥当な SSML 文書にまとめる。
+
+    各パートは <speak>…</speak> で包まれている（rewrite が検証済み）。
+    素朴に連結すると <speak> 要素が並んだ壊れた XML になり、
+    _full.txt を音声合成に渡せなくなる。中間のタグを外して包み直す。
+    """
+    bodies = []
+    for p in parts:
+        body = _SPEAK_WRAPPER.sub("", p.read_text(encoding="utf-8").strip()).strip()
+        if body:
+            bodies.append(body)
+    return "<speak>\n" + _PART_BREAK.join(bodies) + "\n</speak>"
 
 
 def concat_narration(project: str, *, force: bool = False) -> list[Path]:
@@ -34,7 +56,7 @@ def concat_narration(project: str, *, force: bool = False) -> list[Path]:
             print(f"  [skip] {out.name}")
             results.append(out)
             continue
-        combined = "\n\n".join(p.read_text(encoding="utf-8").strip() for p in sorted(parts))
+        combined = _merge_ssml(sorted(parts))
         out.write_text(combined, encoding="utf-8")
         print(f"  {project}: {len(parts)} parts → {out.name} ({len(combined)} chars)")
         results.append(out)

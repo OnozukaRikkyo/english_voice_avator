@@ -182,6 +182,18 @@ def _transcribe_openai(model: str, mp3: Path) -> str:
     アップロード上限は25MB。超える場合は時間で等分割して個別に投げ、連結する。
     """
     chunks = _split_for_upload(mp3)
+    # ffmpeg が何も吐かなかった場合、以降は静かに空文字列を返してしまう
+    if not chunks:
+        raise RuntimeError(f"{mp3.name}: 音声の分割に失敗しました（チャンクが0件）")
+    # segment_time はキーフレーム境界に依存するため、指定どおりのサイズにならない。
+    # 上限を超えたまま送ると API 側で落ちるので、送る前に検出する。
+    over = [c for c in chunks if c.stat().st_size > OPENAI_AUDIO_MAX_BYTES]
+    if over:
+        _cleanup_chunks(mp3, chunks)
+        raise RuntimeError(
+            f"{mp3.name}: 分割後も上限（{OPENAI_AUDIO_MAX_BYTES // 1024 // 1024}MB）を超える"
+            f"チャンクがあります: {[f'{c.name} {c.stat().st_size / 1024 / 1024:.1f}MB' for c in over]}"
+        )
     if len(chunks) > 1:
         print(f"    {mp3.stat().st_size / 1024 / 1024:.1f} MB > 上限 → {len(chunks)} 分割して送信")
 

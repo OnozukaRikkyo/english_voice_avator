@@ -88,6 +88,7 @@ cp your_doc.docx data/senario_jp/   # 1. 置く（.docx / .pdf）
 ./run.sh --provider openai             # 全工程を ChatGPT に切り替える
 ./run.sh --project スラッグ名          # 特定プロジェクトだけ処理する
 python tools/clean_data.py             # 生成物を全部消してやり直す
+./tool_test.sh                         # 自動テストを流す（課金なし）
 ```
 
 ---
@@ -121,6 +122,7 @@ tool_heygen_consent.sh        HeyGen アバターの同意リンク取得
 tool_heygen_test.sh           HeyGen のテスト動画を1本生成
 tool_test_caption.sh          HeyGen 字幕の挙動テスト
 tool_investigate_caption.sh   HeyGen 字幕の実証調査
+tool_test.sh                  自動テスト（APIを呼ばない）
 ```
 
 各スクリプトの2行目に役割が書いてあります。

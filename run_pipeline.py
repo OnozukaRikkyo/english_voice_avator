@@ -66,10 +66,33 @@ def _scan_inbox() -> None:
     print(f"Inbox: {len(audio_files)} file(s) found")
     for audio in audio_files:
         slug = slugify(audio.stem)
-        dst = DATA / slug / "raw" / audio.name
+        raw_dir = DATA / slug / "raw"
+        dst = raw_dir / audio.name
+
+        # 同名ファイルが既にある。中身も同じなら取り込み済み、違うなら別物。
+        # 黙って読み飛ばすと実行全体が無言の no-op になるので、違えば止める。
         if dst.exists():
-            print(f"  [skip] {audio.name} (project '{slug}' already exists)")
-            continue
+            if dst.stat().st_size == audio.stat().st_size:
+                print(f"  [skip] {audio.name} (取り込み済み: data/{slug}/)")
+                continue
+            sys.exit(
+                f"ERROR: {audio.name} は data/{slug}/raw/ の同名ファイルと内容が違います"
+                f"（{audio.stat().st_size:,} / {dst.stat().st_size:,} バイト）。\n"
+                f"  作り直す  : rm -rf data/{slug}\n"
+                f"  別物として: inbox のファイル名を変えてください"
+            )
+
+        # slugify は区切り文字を潰すため、別名でも同じスラグになりうる
+        # （'a-b' と 'a_b' → いずれも 'a_b'）。別の音声に合流させない。
+        if raw_dir.is_dir() and any(raw_dir.iterdir()):
+            existing = ", ".join(f.name for f in sorted(raw_dir.iterdir()))
+            sys.exit(
+                f"ERROR: スラグ '{slug}' は別のファイルで使用済みです。\n"
+                f"  取り込もうとした: {audio.name}\n"
+                f"  既にあるもの    : {existing}\n"
+                f"  inbox のファイル名を変えてください"
+            )
+
         ensure_project_dirs(slug)
         shutil.copy2(audio, dst)
         print(f"  {audio.name} → data/{slug}/raw/")
@@ -138,9 +161,15 @@ def main() -> None:
         print(f"Unknown steps: {unknown}", file=sys.stderr)
         sys.exit(1)
 
+    # --project の綴り間違いで空ディレクトリを作って正常終了しないよう、先に実在を確認する
+    if args.project and not (DATA / args.project / "raw").is_dir():
+        print(f"プロジェクトがありません: {args.project}", file=sys.stderr)
+        print(f"  存在するもの: {', '.join(all_projects()) or '(なし)'}", file=sys.stderr)
+        sys.exit(1)
+
     projects = [args.project] if args.project else all_projects()
     if not projects:
-        print("No projects found. Place source files in data/{project}/raw/", file=sys.stderr)
+        print("No projects found. Place source files in data/inbox/", file=sys.stderr)
         sys.exit(1)
 
     if args.force:

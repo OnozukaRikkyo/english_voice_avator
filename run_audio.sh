@@ -6,6 +6,10 @@
 #   ./run_audio.sh                          data/inbox/ にあるものを処理する
 #   ./run_audio.sh audio.m4a --keep-inbox   処理後も inbox にファイルを残す
 #
+# 音声パスは第1引数。それ以外の引数は run.sh と同じものが使えます。
+#   ./run_audio.sh audio.m4a --provider openai
+#   ./run_audio.sh audio.m4a --model-rewrite gemini-3.6-flash --force
+#
 # 動画生成（heygen / concat_video）は保留中のため実行されません。
 # 完了後、処理済みの音声は data/inbox/ から取り除かれるので、
 # 次のファイルを置いてまた実行するだけで繰り返せます。
@@ -14,11 +18,18 @@ cd "$(dirname "$0")"
 
 KEEP_INBOX=0
 AUDIO=""
+# 音声パスは第1引数のみ。残りは run_pipeline.py へそのまま渡す
+# （--model-rewrite MODEL のように値を取るフラグも自然に通る）。
+if [[ $# -gt 0 && "$1" != -* ]]; then
+    AUDIO="$1"
+    shift
+fi
+ARGS=()
 for arg in "$@"; do
     case "$arg" in
         --keep-inbox) KEEP_INBOX=1 ;;
-        -h|--help)    sed -n '2,10p' "$0" | sed 's/^# \?//'; exit 0 ;;
-        *)            AUDIO="$arg" ;;
+        -h|--help)    sed -n '2,14p' "$0" | sed 's/^# \?//'; exit 0 ;;
+        *)            ARGS+=("$arg") ;;
     esac
 done
 
@@ -55,19 +66,27 @@ if [[ ${#FILES[@]} -eq 0 ]]; then
     exit 1
 fi
 
-python run_pipeline.py
+# 音声を指定されたときは、そのプロジェクトだけを処理する
+if [[ -n "$AUDIO" ]]; then
+    python run_pipeline.py --project "$SLUG" ${ARGS[@]+"${ARGS[@]}"}
+else
+    python run_pipeline.py ${ARGS[@]+"${ARGS[@]}"}
+fi
 
 # 取り込み済みの音声を inbox から片付ける（raw/ に複製済み）
 if [[ $KEEP_INBOX -eq 0 ]]; then
     for f in "${FILES[@]}"; do
-        SLUG="$(python -c "import sys;from pipeline.config import slugify;print(slugify(sys.argv[1]))" "$(basename "${f%.*}")")"
-        [[ -f "data/$SLUG/raw/$(basename "$f")" ]] && rm -f "$f"
+        S="$(python -c "import sys;from pipeline.config import slugify;print(slugify(sys.argv[1]))" "$(basename "${f%.*}")")"
+        [[ -f "data/$S/raw/$(basename "$f")" ]] && rm -f "$f"
     done
 fi
 
 echo
 echo "=== 成果物 ==="
-for d in data/*/; do
+# 音声を指定したときはそのプロジェクトだけ、指定なしなら全件
+DIRS=(data/*/)
+[[ -n "$AUDIO" ]] && DIRS=("data/$SLUG/")
+for d in "${DIRS[@]}"; do
     [[ -d "$d/narration" ]] || continue
     for t in "$d"narration/*_full.txt "$d"translation/*_ja.txt; do
         [[ -f "$t" ]] && printf "  %7s字  %s\n" "$(wc -m < "$t" | tr -d ' ')" "$t"

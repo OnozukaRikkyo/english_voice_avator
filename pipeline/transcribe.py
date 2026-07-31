@@ -8,7 +8,7 @@
 import os
 from pathlib import Path
 
-from . import llm
+from . import artifact, llm
 from .config import TRANSCRIBE_MODEL, stage_dir, all_projects, STEP_IO
 
 _IN, _OUT = STEP_IO["transcribe"]
@@ -41,7 +41,7 @@ def run(
 
         print(f"  Transcribing: {mp3.name}  [{active_model} / {llm.provider(active_model)}]")
         text = llm.transcribe(active_model, mp3)
-        out.write_text(text, encoding="utf-8")
+        artifact.write_checked(out, text, min_chars=100, label=f"transcribe/{mp3.name}")
         print(f"  → {out.name} ({len(text)} chars)")
         results.append(out)
 

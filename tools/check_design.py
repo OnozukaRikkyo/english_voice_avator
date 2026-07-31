@@ -52,13 +52,13 @@ def check() -> tuple[list[str], list[str]]:
 
         # Warning: project slug should be ASCII-safe
         # Existing non-ASCII projects cannot be renamed, so this is non-blocking.
-        # New projects must be created via: python tools/new_project.py <audio_file>
+        # 新規プロジェクトは ./run_audio.sh <audio_file> で作る
         try:
             project.encode("ascii")
         except UnicodeEncodeError:
             warnings.append(
                 f"[NON-ASCII] data/{project}/ — slug has non-ASCII chars. "
-                f"Future projects: use python tools/new_project.py <audio_file>"
+                f"新規プロジェクトは ./run_audio.sh <audio_file> で作ってください"
             )
 
         # Hard violation: part files must live in stage/parts/, not stage/ directly

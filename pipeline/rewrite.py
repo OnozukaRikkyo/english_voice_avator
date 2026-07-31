@@ -109,6 +109,14 @@ def _validate(paragraphs: list[dict], src_chars: int) -> str | None:
     if not paragraphs:
         return "空の結果が返りました"
 
+    # index は出力ファイル名 _part{index:02d}.txt になる。重複すると同じファイルに
+    # 2回書いて片方が消えるため、1..N の連番であることを先に確かめる。
+    idxs = [p.get("index") for p in paragraphs]
+    if not all(isinstance(i, int) for i in idxs):
+        return f"index が整数でない要素があります: {idxs}"
+    if sorted(idxs) != list(range(1, len(idxs) + 1)):
+        return f"index が 1..{len(idxs)} の連番になっていません: {sorted(idxs)}"
+
     for p in paragraphs:
         idx, t = p.get("index"), (p.get("text") or "").strip()
         if len(t) < 50:
