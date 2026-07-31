@@ -103,9 +103,9 @@ Switching provider = editing one line in `pipeline/config.py`.
 | Constant | Value | Provider |
 |----------|-------|----------|
 | `TRANSCRIBE_MODEL` | `gpt-transcribe` | OpenAI |
-| `TRANSCRIBE_ENGLISH_MODEL` | `gemini-2.5-flash` | Gemini |
+| `TRANSCRIBE_ENGLISH_MODEL` | `gemini-3.5-flash-lite` | Gemini |
 | `REWRITE_MODEL` | `gemini-3.5-flash` | Gemini |
-| `TRANSLATE_MODEL` | `gemini-2.5-flash` | Gemini |
+| `TRANSLATE_MODEL` | `gemini-3.6-flash` | Gemini |
 
 `TRANSCRIBE_ENGLISH_MODEL` is only used on the OpenAI path: `gpt-transcribe` always
 transcribes verbatim in the spoken language (neither `prompt` nor `language` overrides

@@ -45,22 +45,37 @@ HEYGEN_API_KEY = os.environ.get("HEYGEN_API_KEY", "")
 #   例) TRANSCRIBE_MODEL = "gpt-transcribe"    → OpenAI
 #       TRANSCRIBE_MODEL = "gemini-2.5-flash"  → Gemini
 #
+# 変更方法は4通り。優先順位は上から強い順:
+#   1. コマンドの引数   ./run.sh --model-rewrite MODEL
+#   2. プリセット       ./run.sh --provider openai
+#   3. .env             REWRITE_MODEL=gemini-3.6-flash   ← コード編集なしで変えられる
+#   4. 下の既定値       このファイルを編集する
+#
 # 現在の設定を一覧するには ./run_llm_check.sh
-# この実行だけ変えるには ./run.sh --model-<工程> MODEL
-TRANSCRIBE_MODEL = "gpt-transcribe"     # 音声 → テキスト
-REWRITE_MODEL    = "gemini-3.5-flash"   # 文字起こし → ナレーション台本
-TRANSLATE_MODEL  = "gemini-2.5-flash"   # 英語ナレーション → 日本語
+
+
+def _model(env_name: str, default: str) -> str:
+    """モデル定数。.env に同名の変数があればそちらを優先する。"""
+    return os.environ.get(env_name, default)
+
+
+TRANSCRIBE_MODEL = _model("TRANSCRIBE_MODEL", "gpt-transcribe")      # 音声 → テキスト
+REWRITE_MODEL    = _model("REWRITE_MODEL",    "gemini-3.5-flash")    # 文字起こし → ナレーション台本
+TRANSLATE_MODEL  = _model("TRANSLATE_MODEL",  "gemini-3.6-flash")    # 英語ナレーション → 日本語
 
 # gpt-transcribe は専用の音声認識モデルで、必ず話された言語のまま逐語で書き起こす
 # （prompt でも language でも英語化できないことを実測で確認済み）。そのため
 # OpenAI 経路のみ、書き起こしのあとにこのモデルで英語化を1回挟む。
 # Gemini 経路は直接英語で書き起こせるので使われない。
-TRANSCRIBE_ENGLISH_MODEL = "gemini-2.5-flash"
+#
+# ここは原語→英語の逐語変換だけで判断も創作も要らないため、意図的に安いモデルを使う。
+# 実測: 21,578字の入力に対し flash-lite でも保持率100.0%（欠落なし）。
+TRANSCRIBE_ENGLISH_MODEL = _model("TRANSCRIBE_ENGLISH_MODEL", "gemini-3.5-flash-lite")
 
 # tools/gen_notebooklm_prompt.py 専用。用語の正式な英語表記を実際に検索させるため
 # Web検索ツールを有効にして呼ぶ（OpenAI: web_search / Gemini: Google検索グラウンディング）。
 # 上と同じ規約で切り替わる。
-NOTEBOOKLM_PROMPT_MODEL = "gpt-5.6-luna"
+NOTEBOOKLM_PROMPT_MODEL = _model("NOTEBOOKLM_PROMPT_MODEL", "gpt-5.6-luna")
 
 # ── プロバイダ一括切り替え ────────────────────────────────────────────────────
 # 上の5定数は工程ごとに最適なモデルを選ぶための「現在の設定」。
@@ -82,11 +97,11 @@ PRESETS: dict[str, dict[str, str]] = {
         "notebooklm":         "gpt-5.6-luna",
     },
     "gemini": {
-        "transcribe":         "gemini-2.5-flash",
-        "transcribe_english": "gemini-2.5-flash",  # Gemini 経路では使われない
+        "transcribe":         "gemini-3.6-flash",
+        "transcribe_english": "gemini-3.5-flash-lite",  # Gemini 経路では使われない
         "rewrite":            "gemini-3.5-flash",
-        "translate":          "gemini-2.5-flash",
-        "notebooklm":         "gemini-2.5-flash",
+        "translate":          "gemini-3.6-flash",
+        "notebooklm":         "gemini-3.6-flash",
     },
 }
 

@@ -21,7 +21,17 @@ Translate the following English narration script into natural, fluent Japanese. 
 Preserve the analytical, authoritative tone and all proper nouns \
 (place names, weapon systems, unit names) in their standard Japanese usage \
 as seen in NHK, Asahi, or Yomiuri reporting. \
-Do not add explanations or translator notes. Output the Japanese text only.
+Do not add explanations or translator notes.
+
+Formatting — REQUIRED (the input is SSML; the output must NOT be):
+- The input is wrapped in <speak>...</speak> and contains <break time="Xs"/> tags. \
+These drive the English text-to-speech and have no place in the translation.
+- Remove ALL SSML tags. Do not output <speak>, </speak>, or any <break> tag.
+- Replace each <break> with a line break, so the Japanese keeps the same \
+sentence and paragraph rhythm as the original.
+- Use polite form (です・ます調) throughout.
+
+Output the plain Japanese text only.
 
 """
 
