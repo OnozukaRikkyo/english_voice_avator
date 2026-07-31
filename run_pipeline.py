@@ -99,7 +99,8 @@ def _scan_inbox() -> None:
 
 
 def main() -> None:
-    _scan_inbox()
+    # inbox の取り込みは引数を解釈したあと。ここで走らせると --help や
+    # 引数エラーでもファイルコピーが起きてしまう。
     parser = argparse.ArgumentParser(description="English Voice Avatar pipeline")
     parser.add_argument(
         "--steps",
@@ -160,6 +161,10 @@ def main() -> None:
     if unknown:
         print(f"Unknown steps: {unknown}", file=sys.stderr)
         sys.exit(1)
+
+    # 引数が正しいと分かってから inbox を取り込む（--project の検証より前に行う。
+    # 新しく置いたファイルのプロジェクトを --project で指せるようにするため）
+    _scan_inbox()
 
     # --project の綴り間違いで空ディレクトリを作って正常終了しないよう、先に実在を確認する
     if args.project and not (DATA / args.project / "raw").is_dir():

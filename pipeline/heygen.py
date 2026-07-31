@@ -92,7 +92,7 @@ def _validate_mp4(path: Path) -> bool:
     result = subprocess.run(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration",
          "-of", "default=noprint_wrappers=1", str(path)],
-        capture_output=False,
+        capture_output=True,   # 検証のたびに ffprobe の出力を混ぜない
     )
     return result.returncode == 0
 

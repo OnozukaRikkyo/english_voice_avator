@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 
 load_dotenv()  # config.py を経由せず単体で import されても .env が効くようにする
 
+from .api_status import status_code
+
 # ── カスタム例外 ──────────────────────────────────────────────────────────────
 
 class OpenAiApiError(Exception):
@@ -21,15 +23,18 @@ class OpenAiApiError(Exception):
 
 # ── エラー分類・例外送出 ──────────────────────────────────────────────────────
 
+# (HTTPステータス, 例外クラス名やエラーコードの語, メッセージ)
+# 数値は status_code() から取る。メッセージの部分文字列で "401" を探すと
+# ID やパスに紛れた数字で誤検知するため、語のほうだけを文字列照合に使う。
 _FATAL_CHECKS = [
-    (("401", "invalid_api_key", "AuthenticationError"),
+    ({401}, ("AuthenticationError", "invalid_api_key"),
      "APIキーが無効です（401）。OPENAI_API_KEY を再確認してください。"),
-    (("403", "PermissionDeniedError"),
+    ({403}, ("PermissionDeniedError",),
      "アクセス権限がありません（403）。OpenAIアカウントの権限設定を確認してください。"),
-    (("429", "RateLimitError", "insufficient_quota"),
+    ({429}, ("RateLimitError", "insufficient_quota"),
      "APIレート制限または利用上限に達しました（429）。しばらく時間をおいてから再実行してください。"),
-    (("500", "503", "InternalServerError", "APIConnectionError"),
-     "OpenAIサーバーエラー（500/503）。10分ほど待機してから再実行してください。"),
+    ({500, 502, 503, 504}, ("InternalServerError", "APIConnectionError"),
+     "OpenAIサーバーエラー（5xx）。10分ほど待機してから再実行してください。"),
 ]
 
 
@@ -38,9 +43,11 @@ def check_api_error(e: Exception) -> None:
 
     該当しない場合は何もしない（呼び出し元で通常処理を続ける）。
     """
+    code = status_code(e)
+    name = type(e).__name__
     err = str(e)
-    for patterns, msg in _FATAL_CHECKS:
-        if any(c in err for c in patterns):
+    for codes, words, msg in _FATAL_CHECKS:
+        if code in codes or name in words or any(w in err for w in words):
             raise OpenAiApiError(f"{msg}\n詳細: {e}")
 
 

@@ -69,11 +69,12 @@ not a short summary.
 
 # ── Unlimited mode: no mention of splitting ────────────────────────────────────
 
+# 注意: このモードは .format() を通さないため、波括弧はエスケープしない。
 _PROMPT_UNLIMITED = _ROLE + """
 
 # Output Format
 Return a JSON array with a single element containing the full narration:
-- {{ "index": 1, "text": <the complete narration script in SSML: wrapped in <speak>...</speak> with <break> tags> }}
+- { "index": 1, "text": <the complete narration script in SSML: wrapped in <speak>...</speak> with <break> tags> }
 """
 
 # ── Limited mode: splitting instructions included ──────────────────────────────
@@ -169,7 +170,9 @@ def rewrite_file(
     # 出力が途中で切れることが実際に起きる（`<break time=` で終わる SSML が
     # 生成された）。壊れた台本をそのまま翻訳まで流さないよう検証し、駄目なら作り直す。
     for attempt in range(1, _MAX_ATTEMPTS + 1):
-        raw = llm.generate_json(model, prompt, schema, schema_name="narration_parts")
+        # 用語の正確さ・行間の分析・意味単位での分割を同時に要求する最難関の工程。
+        # OpenAI 経路では推論を深く使う（Gemini 経路では無視される）。
+        raw = llm.generate_json(model, prompt, schema, schema_name="narration_parts", effort="high")
         paragraphs = sorted(json.loads(raw or "[]"), key=lambda x: x["index"])
         problem = _validate(paragraphs, len(text))
         if problem is None:

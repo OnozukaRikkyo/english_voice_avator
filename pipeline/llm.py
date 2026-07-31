@@ -43,6 +43,24 @@ def provider(model: str) -> str:
     return "OpenAI" if is_openai(model) else "Gemini"
 
 
+def _openai_create(**kwargs):
+    """Responses API を呼ぶ。reasoning 非対応モデルなら外して1度だけ再試行する。
+
+    reasoning は推論モデル（gpt-5.6-luna 等）でしか受け付けられず、
+    gpt-4.1-mini のような非推論モデルに渡すと 400 で落ちる。
+    モデル名の一覧を持つと保守できないので、拒否されたら外して投げ直す。
+    """
+    client = openai_client.get_openai_client()
+    try:
+        return client.responses.create(**kwargs)
+    except Exception as e:
+        if "reasoning" in kwargs and "reasoning" in str(e) and "not supported" in str(e):
+            kwargs.pop("reasoning")
+            print("    [info] このモデルは reasoning 非対応のため指定を外して再試行します")
+            return client.responses.create(**kwargs)
+        raise
+
+
 def check_api_error(e: Exception) -> None:
     """致命的なAPIエラーを、どちらの経路で起きたかに関わらず分類する。
 
@@ -55,7 +73,8 @@ def check_api_error(e: Exception) -> None:
 
 # ── テキスト生成 ──────────────────────────────────────────────────────────────
 
-def generate_text(model: str, prompt: str, *, search: bool = False, temperature: float | None = None) -> str:
+def generate_text(model: str, prompt: str, *, search: bool = False,
+                  temperature: float | None = None, effort: str | None = None) -> str:
     """プレーンテキストを生成して返す。
 
     Args:
@@ -63,14 +82,17 @@ def generate_text(model: str, prompt: str, *, search: bool = False, temperature:
                 Gemini は Google 検索グラウンディングを使う。用語の正式な英語表記を
                 実際に調べさせたい場合に使う。
         temperature: Gemini 経路のみ有効。OpenAI の推論モデルは非対応なので無視する。
+        effort: OpenAI 経路のみ有効な推論の深さ（"low"/"medium"/"high"）。
+                非推論モデルには自動で渡さない。
     """
     try:
         if is_openai(model):
-            kwargs = {"tools": [{"type": "web_search"}]} if search else {}
-            resp = openai_client.get_openai_client().responses.create(
-                model=model, input=prompt, **kwargs
-            )
-            return (resp.output_text or "").strip()
+            kwargs: dict = {"model": model, "input": prompt}
+            if search:
+                kwargs["tools"] = [{"type": "web_search"}]
+            if effort:
+                kwargs["reasoning"] = {"effort": effort}
+            return (_openai_create(**kwargs).output_text or "").strip()
 
         from google.genai import types
         cfg: dict = {}
@@ -91,7 +113,8 @@ def generate_text(model: str, prompt: str, *, search: bool = False, temperature:
 
 # ── 構造化JSON生成 ────────────────────────────────────────────────────────────
 
-def generate_json(model: str, prompt: str, schema: dict, schema_name: str = "result") -> str:
+def generate_json(model: str, prompt: str, schema: dict, schema_name: str = "result",
+                  *, effort: str | None = None) -> str:
     """スキーマで文法を強制したJSON文字列を返す。
 
     schema は Gemini 形式の dict（"type": "ARRAY" のような大文字表記）。
@@ -110,17 +133,19 @@ def generate_json(model: str, prompt: str, schema: dict, schema_name: str = "res
                     "required": ["items"],
                     "additionalProperties": False,
                 }
-            resp = openai_client.get_openai_client().responses.create(
-                model=model,
-                input=prompt,
-                text={"format": {
+            kwargs: dict = {
+                "model": model,
+                "input": prompt,
+                "text": {"format": {
                     "type": "json_schema",
                     "name": schema_name,
                     "schema": json_schema,
                     "strict": True,
                 }},
-            )
-            out = (resp.output_text or "").strip()
+            }
+            if effort:
+                kwargs["reasoning"] = {"effort": effort}
+            out = (_openai_create(**kwargs).output_text or "").strip()
             if wrapped:
                 import json
                 return json.dumps(json.loads(out)["items"], ensure_ascii=False)

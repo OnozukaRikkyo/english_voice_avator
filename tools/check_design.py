@@ -25,6 +25,9 @@ DATA = ROOT / "data"
 LEGACY_DIRS = {"input", "eng_mp3", "eng_text", "eng_split",
                "regen_mp3", "avatar_video", "concat_text", "voice_concat"}
 
+# data/ 直下にあるがプロジェクトではないもの（投入口と素材置き場）
+NON_PROJECT_DIRS = {"inbox", "senario_jp"}
+
 
 def check() -> tuple[list[str], list[str]]:
     """Returns (violations, warnings).
@@ -42,6 +45,9 @@ def check() -> tuple[list[str], list[str]]:
         if not project_dir.is_dir():
             continue
         project = project_dir.name
+
+        if project in NON_PROJECT_DIRS:
+            continue
 
         # Hard violation: legacy flat-layout directories must not exist
         if project in LEGACY_DIRS:

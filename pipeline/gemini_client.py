@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 
 load_dotenv()  # config.py を経由せず単体で import されても .env が効くようにする
 
+from .api_status import status_code
+
 # ── カスタム例外 ──────────────────────────────────────────────────────────────
 
 class GeminiApiError(Exception):
@@ -21,17 +23,20 @@ class GeminiApiError(Exception):
 
 # ── エラー分類・例外送出 ──────────────────────────────────────────────────────
 
+# (HTTPステータス, エラー種別の語, メッセージ)
+# 数値は status_code() から取る。メッセージの部分文字列で "400" を探すと
+# モデル名や ID に紛れた数字で誤検知するため、語のほうだけを文字列照合に使う。
 _FATAL_CHECKS = [
-    (("401", "UNAUTHENTICATED"),
+    ({401}, ("UNAUTHENTICATED",),
      "APIキーが無効です（401）。GEMINI_API_KEY を再確認してください。"),
-    (("403", "PERMISSION_DENIED"),
+    ({403}, ("PERMISSION_DENIED",),
      "アクセス権限がありません（403）。Google Cloudの支払い・権限設定を確認してください。"),
-    (("400", "INVALID_ARGUMENT"),
+    ({400}, ("INVALID_ARGUMENT",),
      "リクエストが不正です（400）。モデル名と入力内容を見直してください。"),
-    (("429", "RESOURCE_EXHAUSTED"),
+    ({429}, ("RESOURCE_EXHAUSTED",),
      "APIレート制限に達しました（429）。しばらく時間をおいてから再実行してください。"),
-    (("500", "503", "INTERNAL", "UNAVAILABLE"),
-     "Googleサーバーエラー（500/503）。10分ほど待機してから再実行してください。"),
+    ({500, 502, 503, 504}, ("INTERNAL", "UNAVAILABLE"),
+     "Googleサーバーエラー（5xx）。10分ほど待機してから再実行してください。"),
 ]
 
 
@@ -43,8 +48,10 @@ def check_api_error(e: Exception) -> None:
     err = str(e)
     if "quota" in err.lower():
         raise GeminiApiError(f"APIレート制限に達しました（quota）。しばらく時間をおいてから再実行してください。\n詳細: {e}")
-    for patterns, msg in _FATAL_CHECKS:
-        if any(c in err for c in patterns):
+    code = status_code(e)
+    name = type(e).__name__
+    for codes, words, msg in _FATAL_CHECKS:
+        if code in codes or name in words or any(w in err for w in words):
             raise GeminiApiError(f"{msg}\n詳細: {e}")
 
 

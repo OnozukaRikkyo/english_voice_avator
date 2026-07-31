@@ -101,7 +101,8 @@ def generate_dynamic_sections(japanese_text: str, model: str = NOTEBOOKLM_PROMPT
     プロバイダはモデル名で決まる（gpt-* → OpenAI の web_search、
     それ以外 → Gemini の Google 検索グラウンディング）。
     """
-    return llm.generate_text(model, _META_PROMPT + japanese_text, search=True, temperature=0.3)
+    return llm.generate_text(model, _META_PROMPT + japanese_text,
+                             search=True, temperature=0.3, effort="high")
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
