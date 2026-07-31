@@ -12,9 +12,14 @@ sys.path.insert(0, str(ROOT))
 
 from pipeline.config import (
     STAGES, STAGE_LABELS, STEP_IO,
-    GEMINI_TRANSCRIBE_MODEL, GEMINI_REWRITE_MODEL, REWRITE_MAX_CHARS,
-    HEYGEN_RATIO,
+    TRANSCRIBE_MODEL, REWRITE_MODEL, TRANSLATE_MODEL, TRANSCRIBE_ENGLISH_MODEL,
+    REWRITE_MAX_CHARS, HEYGEN_RATIO,
 )
+
+
+def _provider(model: str) -> str:
+    """Model name picks the provider — same rule as pipeline/llm.py."""
+    return "OpenAI" if model.startswith("gpt-") else "Gemini"
 
 
 def _pipeline_diagram() -> str:
@@ -120,12 +125,36 @@ python heygen_check.py
 
 Each step is **idempotent** — existing output files are skipped.
 
-## Key Constants (`pipeline/config.py`)
+## Models & Providers
+
+**The model name picks the provider**: `gpt-*` → OpenAI, anything else → Gemini.
+Dispatch lives in `pipeline/llm.py`; the step modules never talk to a provider SDK directly.
+Switching provider = editing one line in `pipeline/config.py`.
+
+| Constant | Value | Provider |
+|----------|-------|----------|
+| `TRANSCRIBE_MODEL` | `{TRANSCRIBE_MODEL}` | {_provider(TRANSCRIBE_MODEL)} |
+| `TRANSCRIBE_ENGLISH_MODEL` | `{TRANSCRIBE_ENGLISH_MODEL}` | {_provider(TRANSCRIBE_ENGLISH_MODEL)} |
+| `REWRITE_MODEL` | `{REWRITE_MODEL}` | {_provider(REWRITE_MODEL)} |
+| `TRANSLATE_MODEL` | `{TRANSLATE_MODEL}` | {_provider(TRANSLATE_MODEL)} |
+
+`TRANSCRIBE_ENGLISH_MODEL` is only used on the OpenAI path: `gpt-transcribe` always
+transcribes verbatim in the spoken language (neither `prompt` nor `language` overrides
+this — verified against the live API), so an English-normalisation pass is added after it.
+The Gemini path transcribes straight to English and skips that pass.
+
+Per-run override without editing config:
+
+```bash
+./run.sh --model-rewrite gpt-5.6-luna
+./run.sh --model-transcribe gemini-2.5-flash
+./run_llm_check.sh --live        # which provider each step resolves to + connectivity
+```
+
+## Other Key Constants (`pipeline/config.py`)
 
 | Constant | Value |
 |----------|-------|
-| `GEMINI_TRANSCRIBE_MODEL` | `{GEMINI_TRANSCRIBE_MODEL}` |
-| `GEMINI_REWRITE_MODEL` | `{GEMINI_REWRITE_MODEL}` |
 | `REWRITE_MAX_CHARS` | `{REWRITE_MAX_CHARS}` |
 | `HEYGEN_RATIO` | `{HEYGEN_RATIO}` |
 
@@ -133,7 +162,8 @@ Each step is **idempotent** — existing output files are skipped.
 
 - Python 3.12, venv at `.venv/`
 - VS Code auto-activates venv via `.vscode/settings.json`
-- API keys in `.env` (gitignored): `GEMINI_API_KEY`, `HEYGEN_API_KEY`, `HEYGEN_AVATAR_ID`, `HEYGEN_VOICE_ID`
+- API keys in `.env` (gitignored): `GEMINI_API_KEY`, `OPENAI_API_KEY`, `HEYGEN_API_KEY`, `HEYGEN_AVATAR_ID`, `HEYGEN_VOICE_ID`
+- Only the keys for the providers you actually use are required (clients are lazily initialised)
 
 ## GitHub
 

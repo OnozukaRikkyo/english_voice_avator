@@ -8,15 +8,10 @@ like _zh.txt, _ko.txt without ambiguity.
 """
 from pathlib import Path
 
-from google import genai
-
-from .config import (
-    GEMINI_API_KEY, GEMINI_TRANSLATE_MODEL,
-    stage_dir, all_projects, STEP_IO,
-)
+from . import llm
+from .config import TRANSLATE_MODEL, stage_dir, all_projects, STEP_IO
 
 _IN, _OUT = STEP_IO["translate"]
-_client: genai.Client | None = None
 
 _PROMPT = """\
 You are a professional Japanese translator specializing in geopolitical analysis \
@@ -31,28 +26,18 @@ Do not add explanations or translator notes. Output the Japanese text only.
 """
 
 
-def _get_client() -> genai.Client:
-    global _client
-    if _client is None:
-        _client = genai.Client(api_key=GEMINI_API_KEY)
-    return _client
-
-
-def translate_file(src: Path, dst: Path) -> Path:
+def translate_file(src: Path, dst: Path, model: str = TRANSLATE_MODEL) -> Path:
     text = src.read_text(encoding="utf-8").strip()
-    print(f"  Translating: {src.name} ({len(text)} chars)")
+    print(f"  Translating: {src.name} ({len(text)} chars)  [{model} / {llm.provider(model)}]")
 
-    response = _get_client().models.generate_content(
-        model=GEMINI_TRANSLATE_MODEL,
-        contents=[_PROMPT + text],
-    )
-    translated = response.text.strip()
+    translated = llm.generate_text(model, _PROMPT + text)
     dst.write_text(translated, encoding="utf-8")
     print(f"    → {dst.name} ({len(translated)} chars)")
     return dst
 
 
-def run(project: str, *, force: bool = False) -> list[Path]:
+def run(project: str, *, force: bool = False, model: str | None = None) -> list[Path]:
+    active_model = model or TRANSLATE_MODEL
     src_dir = stage_dir(project, _IN)    # narration/
     dst_dir = stage_dir(project, _OUT)   # translation/
     dst_dir.mkdir(parents=True, exist_ok=True)
@@ -65,7 +50,7 @@ def run(project: str, *, force: bool = False) -> list[Path]:
             print(f"  [skip] {out.name}")
             results.append(out)
             continue
-        translate_file(full_txt, out)
+        translate_file(full_txt, out, model=active_model)
         results.append(out)
 
     return results

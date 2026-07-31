@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT))
 from google import genai
 from google.genai import types
 
-from pipeline.config import GEMINI_API_KEY, GEMINI_TRANSLATE_MODEL
+from pipeline.config import GEMINI_API_KEY, NOTEBOOKLM_PROMPT_MODEL
 
 SENARIO_DIR = ROOT / "data" / "senario_jp"
 OUTPUT_DIR  = SENARIO_DIR / "prompts"
@@ -99,7 +99,7 @@ def read_document(path: Path) -> str:
 
 def generate_dynamic_sections(client: genai.Client, japanese_text: str) -> str:
     response = client.models.generate_content(
-        model=GEMINI_TRANSLATE_MODEL,
+        model=NOTEBOOKLM_PROMPT_MODEL,
         contents=[_META_PROMPT + japanese_text],
         config=types.GenerateContentConfig(
             tools=[types.Tool(google_search=types.GoogleSearch())],

@@ -20,6 +20,10 @@ Flags:
   --force          Force re-run even if output files already exist.
   --max-chars N    Override REWRITE_MAX_CHARS for the rewrite step only.
                    Use -1 for unlimited (single file), or N for max chars per segment.
+  --model-transcribe / --model-rewrite / --model-translate MODEL
+                   Override the model for that step, for this run only.
+                   The model name picks the provider: gpt-* → OpenAI, else Gemini.
+                   To change it permanently, edit pipeline/config.py.
 
 Each step is idempotent by default: already-generated files are skipped.
 New audio files placed in data/inbox/ are automatically registered as projects.
@@ -29,7 +33,10 @@ import shutil
 import sys
 import time
 
-from pipeline.config import INBOX_DIR, DATA, all_projects, ensure_project_dirs, slugify
+from pipeline.config import (
+    INBOX_DIR, DATA, TRANSCRIBE_MODEL, REWRITE_MODEL, TRANSLATE_MODEL,
+    all_projects, ensure_project_dirs, slugify,
+)
 
 # SUSPENDED: heygen / concat_video are on hold until the HeyGen on-screen caption
 # problem is resolved (see tools/investigate_caption.py). The modules themselves are
@@ -89,6 +96,18 @@ def main() -> None:
         dest="max_chars",
         help="Override REWRITE_MAX_CHARS for the rewrite step (-1 = unlimited)",
     )
+    # モデル名がプロバイダを決める（gpt-* → OpenAI、それ以外 → Gemini）。
+    # 恒久的に変えるなら pipeline/config.py 側を書き換える。
+    for step, const in (("transcribe", TRANSCRIBE_MODEL),
+                        ("rewrite", REWRITE_MODEL),
+                        ("translate", TRANSLATE_MODEL)):
+        parser.add_argument(
+            f"--model-{step}",
+            default=None,
+            dest=f"model_{step}",
+            metavar="MODEL",
+            help=f"Override the {step} model for this run (default: {const})",
+        )
     args = parser.parse_args()
 
     steps = [s.strip() for s in args.steps.split(",")]
@@ -125,11 +144,13 @@ def main() -> None:
 
             elif step == "transcribe":
                 from pipeline import transcribe
-                transcribe.run(project, force=args.force)
+                transcribe.run(project, force=args.force, model=args.model_transcribe)
 
             elif step == "rewrite":
                 from pipeline import rewrite
-                rewrite.run(project, force=args.force, max_chars=args.max_chars)
+                rewrite.run(
+                    project, force=args.force, max_chars=args.max_chars, model=args.model_rewrite
+                )
 
             elif step == "concat_narration":
                 from tools.concat_narration import concat_narration
@@ -137,7 +158,7 @@ def main() -> None:
 
             elif step == "translate":
                 from pipeline import translate
-                translate.run(project, force=args.force)
+                translate.run(project, force=args.force, model=args.model_translate)
 
             # SUSPENDED — see ALL_STEPS above.
             # elif step == "heygen":

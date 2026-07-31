@@ -1,5 +1,6 @@
-# Core pipeline
-google-genai>=2.8.0     # transcribe / rewrite / translate
+# Core pipeline — プロバイダはモデル名で切り替わる（pipeline/llm.py）
+google-genai>=2.8.0     # Gemini 経路
+openai>=1.109           # OpenAI 経路（gpt-transcribe ほか）
 python-dotenv>=1.0      # .env loading (pipeline/config.py)
 requests>=2.32          # HeyGen API (pipeline/heygen.py)
 

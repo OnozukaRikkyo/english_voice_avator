@@ -7,16 +7,13 @@ REWRITE_MAX_CHARS in config.py controls segment size:
 import json
 from pathlib import Path
 
-from google import genai
-from google.genai import types
-
+from . import llm
 from .config import (
-    GEMINI_API_KEY, GEMINI_REWRITE_MODEL, REWRITE_MAX_CHARS,
+    REWRITE_MODEL, REWRITE_MAX_CHARS,
     stage_dir, parts_dir, all_projects, STEP_IO,
 )
 
 _IN, _OUT = STEP_IO["rewrite"]
-_client: genai.Client | None = None
 
 # ── Shared role + content instructions ────────────────────────────────────────
 
@@ -105,15 +102,12 @@ def _build_prompt(max_chars: int, transcript: str) -> str:
     return _PROMPT_LIMITED.format(max_chars=max_chars) + "\n\n" + transcript
 
 
-def _get_client() -> genai.Client:
-    global _client
-    if _client is None:
-        _client = genai.Client(api_key=GEMINI_API_KEY)
-    return _client
-
-
-def rewrite_file(txt_path: Path, output_dir: Path, max_chars: int = REWRITE_MAX_CHARS) -> list[Path]:
-    client = _get_client()
+def rewrite_file(
+    txt_path: Path,
+    output_dir: Path,
+    max_chars: int = REWRITE_MAX_CHARS,
+    model: str = REWRITE_MODEL,
+) -> list[Path]:
     text = txt_path.read_text(encoding="utf-8")
     print(f"  Total chars: {len(text)}  |  max_chars={'unlimited' if max_chars == -1 else max_chars}")
 
@@ -129,16 +123,9 @@ def rewrite_file(txt_path: Path, output_dir: Path, max_chars: int = REWRITE_MAX_
         },
     }
 
-    response = client.models.generate_content(
-        model=GEMINI_REWRITE_MODEL,
-        contents=[_build_prompt(max_chars, text)],
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=schema,
-        ),
-    )
+    raw = llm.generate_json(model, _build_prompt(max_chars, text), schema, schema_name="narration_parts")
 
-    paragraphs = sorted(json.loads(response.text or "[]"), key=lambda x: x["index"])
+    paragraphs = sorted(json.loads(raw or "[]"), key=lambda x: x["index"])
     if not paragraphs:
         raise RuntimeError(f"Gemini returned empty result for {txt_path.name}")
 
@@ -158,7 +145,9 @@ def rewrite_file(txt_path: Path, output_dir: Path, max_chars: int = REWRITE_MAX_
     return results
 
 
-def run(project: str, *, force: bool = False, max_chars: int | None = None) -> list[Path]:
+def run(
+    project: str, *, force: bool = False, max_chars: int | None = None, model: str | None = None
+) -> list[Path]:
     """Run rewrite for a project.
 
     Parts are written to narration/parts/ (intermediate).
@@ -167,8 +156,10 @@ def run(project: str, *, force: bool = False, max_chars: int | None = None) -> l
     Args:
         force: Delete existing parts and re-run.
         max_chars: Override REWRITE_MAX_CHARS (-1=unlimited, N=split at N chars).
+        model: Override REWRITE_MODEL (gpt-* なら OpenAI 経路).
     """
     effective_max = max_chars if max_chars is not None else REWRITE_MAX_CHARS
+    active_model = model or REWRITE_MODEL
     src_dir = stage_dir(project, _IN)
     dst_dir = parts_dir(project, _OUT)   # ← narration/parts/
     dst_dir.mkdir(parents=True, exist_ok=True)
@@ -190,8 +181,11 @@ def run(project: str, *, force: bool = False, max_chars: int | None = None) -> l
             for f in existing:
                 f.unlink()
             print(f"  [force] removed {len(existing)} existing part(s)")
-        print(f"  Rewriting: {txt.name}  (max_chars={'unlimited' if effective_max == -1 else effective_max})")
-        parts = rewrite_file(txt, dst_dir, max_chars=effective_max)
+        print(
+            f"  Rewriting: {txt.name}  (max_chars={'unlimited' if effective_max == -1 else effective_max})"
+            f"  [{active_model} / {llm.provider(active_model)}]"
+        )
+        parts = rewrite_file(txt, dst_dir, max_chars=effective_max, model=active_model)
         results.extend(parts)
 
     return results

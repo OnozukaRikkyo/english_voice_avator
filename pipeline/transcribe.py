@@ -1,38 +1,27 @@
-"""Stage audio→transcript: mp3 → English text (Gemini).
+"""Stage audio→transcript: mp3 → English text.
 
-The output is ALWAYS English, whatever language is spoken in the audio.
-Non-English speech is translated, not transcribed verbatim — the downstream
-rewrite step expects an English transcript.
+出力は ALWAYS 英語。音声が何語であっても英語になる。
+
+プロバイダは config.TRANSCRIBE_MODEL のモデル名で決まる（gpt-* → OpenAI、
+それ以外 → Gemini）。呼び分けは pipeline/llm.py が担当する。
 """
-import io
-import time
+import os
 from pathlib import Path
 
-from google import genai
-
-from .config import GEMINI_API_KEY, GEMINI_TRANSCRIBE_MODEL, stage_dir, all_projects, STEP_IO
+from . import llm
+from .config import TRANSCRIBE_MODEL, stage_dir, all_projects, STEP_IO
 
 _IN, _OUT = STEP_IO["transcribe"]
-_client: genai.Client | None = None
-
-_PROMPT = (
-    "Transcribe this audio. The output MUST be in English, and in English only.\n"
-    "- If the audio is spoken in English, transcribe it verbatim.\n"
-    "- If the audio is spoken in any other language, translate it into English "
-    "as you transcribe. Do NOT output the original language.\n"
-    "Cover the entire audio from start to finish — do not summarize or omit anything.\n"
-    "Output the English text only: no preamble, no language labels, no commentary."
-)
 
 
-def _client_get() -> genai.Client:
-    global _client
-    if _client is None:
-        _client = genai.Client(api_key=GEMINI_API_KEY)
-    return _client
+def run(project: str, *, force: bool = False, model: str | None = None) -> list[Path]:
+    """Run transcribe for a project.
 
-
-def run(project: str, *, force: bool = False) -> list[Path]:
+    Args:
+        force: 既存の出力を消して再実行する。
+        model: config.TRANSCRIBE_MODEL を上書きする（gpt-* なら OpenAI 経路）。
+    """
+    active_model = model or TRANSCRIBE_MODEL
     src_dir = stage_dir(project, _IN)
     dst_dir = stage_dir(project, _OUT)
     dst_dir.mkdir(parents=True, exist_ok=True)
@@ -47,30 +36,16 @@ def run(project: str, *, force: bool = False) -> list[Path]:
         if out.exists() and force:
             out.unlink()
 
-        print(f"  Transcribing: {mp3.name}")
-        client = _client_get()
-        buf = io.BytesIO(mp3.read_bytes())
-        buf.name = "upload.mp3"
-        uploaded = client.files.upload(file=buf, config={"mime_type": "audio/mp3"})
-
-        while uploaded.state.name == "PROCESSING":
-            time.sleep(5)
-            uploaded = client.files.get(name=uploaded.name)
-
-        response = client.models.generate_content(
-            model=GEMINI_TRANSCRIBE_MODEL,
-            contents=[uploaded, _PROMPT],
-        )
-        out.write_text(response.text, encoding="utf-8")
-        client.files.delete(name=uploaded.name)
-        print(f"  → {out.name}")
+        print(f"  Transcribing: {mp3.name}  [{active_model} / {llm.provider(active_model)}]")
+        text = llm.transcribe(active_model, mp3)
+        out.write_text(text, encoding="utf-8")
+        print(f"  → {out.name} ({len(text)} chars)")
         results.append(out)
 
     return results
 
 
 def run_all() -> None:
-    import os
     projects = all_projects()
     if os.environ.get("PIPELINE_DEBUG"):
         projects = projects[:1]

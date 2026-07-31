@@ -32,14 +32,39 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── API keys ──────────────────────────────────────────────────────────────────
-GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
+# どちらも必須ではない。使うモデルの側のキーだけあればよい（クライアントは遅延初期化）。
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 HEYGEN_API_KEY = os.environ.get("HEYGEN_API_KEY", "")
 
-# ── Model / service constants ─────────────────────────────────────────────────
-GEMINI_TRANSCRIBE_MODEL = "gemini-2.5-flash"
-GEMINI_REWRITE_MODEL    = "gemini-3.5-flash"
-GEMINI_TRANSLATE_MODEL  = "gemini-2.5-flash"
-REWRITE_MAX_CHARS       = 7000  # Gemini splits narration into parts of ≤7000 chars at natural break points
+# ── Model constants ───────────────────────────────────────────────────────────
+# **モデル名がプロバイダを決める**: "gpt-" で始まれば OpenAI、それ以外は Gemini。
+# 下の4行を書き換えるだけで工程ごとに切り替わる（pipeline/llm.py が振り分ける）。
+#
+#   例) TRANSCRIBE_MODEL = "gpt-transcribe"    → OpenAI
+#       TRANSCRIBE_MODEL = "gemini-2.5-flash"  → Gemini
+#
+# 実行時に一時的に変えたい場合は run_pipeline.py の
+# --model-transcribe / --model-rewrite / --model-translate を使う。
+TRANSCRIBE_MODEL = "gpt-transcribe"     # 音声 → テキスト
+REWRITE_MODEL    = "gemini-3.5-flash"   # 文字起こし → ナレーション台本
+TRANSLATE_MODEL  = "gemini-2.5-flash"   # 英語ナレーション → 日本語
+
+# gpt-transcribe は専用の音声認識モデルで、必ず話された言語のまま逐語で書き起こす
+# （prompt でも language でも英語化できないことを実測で確認済み）。そのため
+# OpenAI 経路のみ、書き起こしのあとにこのモデルで英語化を1回挟む。
+# Gemini 経路は直接英語で書き起こせるので使われない。
+TRANSCRIBE_ENGLISH_MODEL = "gemini-2.5-flash"
+
+# tools/gen_notebooklm_prompt.py 専用。Google 検索グラウンディングを使うため
+# **Gemini モデル固定**で、上の切り替え規約の対象外。
+NOTEBOOKLM_PROMPT_MODEL = "gemini-2.5-flash"
+
+REWRITE_MAX_CHARS = 7000  # ナレーションを ≤7000 文字のパートに自然な切れ目で分割させる
+
+# OpenAI /v1/audio/transcriptions のアップロード上限（25MB）。
+# 超える音声は llm.py が時間で等分割して送る。
+OPENAI_AUDIO_MAX_BYTES = 25 * 1024 * 1024
 
 HEYGEN_BASE_URL  = "https://api.heygen.com"
 HEYGEN_AVATAR_ID = os.environ.get("HEYGEN_AVATAR_ID", "")

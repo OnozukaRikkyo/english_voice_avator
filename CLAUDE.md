@@ -94,12 +94,36 @@ python heygen_check.py
 
 Each step is **idempotent** — existing output files are skipped.
 
-## Key Constants (`pipeline/config.py`)
+## Models & Providers
+
+**The model name picks the provider**: `gpt-*` → OpenAI, anything else → Gemini.
+Dispatch lives in `pipeline/llm.py`; the step modules never talk to a provider SDK directly.
+Switching provider = editing one line in `pipeline/config.py`.
+
+| Constant | Value | Provider |
+|----------|-------|----------|
+| `TRANSCRIBE_MODEL` | `gpt-transcribe` | OpenAI |
+| `TRANSCRIBE_ENGLISH_MODEL` | `gemini-2.5-flash` | Gemini |
+| `REWRITE_MODEL` | `gemini-3.5-flash` | Gemini |
+| `TRANSLATE_MODEL` | `gemini-2.5-flash` | Gemini |
+
+`TRANSCRIBE_ENGLISH_MODEL` is only used on the OpenAI path: `gpt-transcribe` always
+transcribes verbatim in the spoken language (neither `prompt` nor `language` overrides
+this — verified against the live API), so an English-normalisation pass is added after it.
+The Gemini path transcribes straight to English and skips that pass.
+
+Per-run override without editing config:
+
+```bash
+./run.sh --model-rewrite gpt-5.6-luna
+./run.sh --model-transcribe gemini-2.5-flash
+./run_llm_check.sh --live        # which provider each step resolves to + connectivity
+```
+
+## Other Key Constants (`pipeline/config.py`)
 
 | Constant | Value |
 |----------|-------|
-| `GEMINI_TRANSCRIBE_MODEL` | `gemini-2.5-flash` |
-| `GEMINI_REWRITE_MODEL` | `gemini-3.5-flash` |
 | `REWRITE_MAX_CHARS` | `7000` |
 | `HEYGEN_RATIO` | `16:9` |
 
@@ -107,7 +131,8 @@ Each step is **idempotent** — existing output files are skipped.
 
 - Python 3.12, venv at `.venv/`
 - VS Code auto-activates venv via `.vscode/settings.json`
-- API keys in `.env` (gitignored): `GEMINI_API_KEY`, `HEYGEN_API_KEY`, `HEYGEN_AVATAR_ID`, `HEYGEN_VOICE_ID`
+- API keys in `.env` (gitignored): `GEMINI_API_KEY`, `OPENAI_API_KEY`, `HEYGEN_API_KEY`, `HEYGEN_AVATAR_ID`, `HEYGEN_VOICE_ID`
+- Only the keys for the providers you actually use are required (clients are lazily initialised)
 
 ## GitHub
 
