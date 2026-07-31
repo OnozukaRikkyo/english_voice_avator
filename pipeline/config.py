@@ -56,9 +56,10 @@ TRANSLATE_MODEL  = "gemini-2.5-flash"   # 英語ナレーション → 日本語
 # Gemini 経路は直接英語で書き起こせるので使われない。
 TRANSCRIBE_ENGLISH_MODEL = "gemini-2.5-flash"
 
-# tools/gen_notebooklm_prompt.py 専用。Google 検索グラウンディングを使うため
-# **Gemini モデル固定**で、上の切り替え規約の対象外。
-NOTEBOOKLM_PROMPT_MODEL = "gemini-2.5-flash"
+# tools/gen_notebooklm_prompt.py 専用。用語の正式な英語表記を実際に検索させるため
+# Web検索ツールを有効にして呼ぶ（OpenAI: web_search / Gemini: Google検索グラウンディング）。
+# 上と同じ規約で切り替わる。
+NOTEBOOKLM_PROMPT_MODEL = "gpt-5.6-luna"
 
 REWRITE_MAX_CHARS = 7000  # ナレーションを ≤7000 文字のパートに自然な切れ目で分割させる
 

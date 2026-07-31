@@ -13,16 +13,15 @@ Only the Expected Output Format is fixed across all documents.
 Usage:
   python tools/gen_notebooklm_prompt.py
 """
+import argparse
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-from google import genai
-from google.genai import types
-
-from pipeline.config import GEMINI_API_KEY, NOTEBOOKLM_PROMPT_MODEL
+from pipeline import llm
+from pipeline.config import NOTEBOOKLM_PROMPT_MODEL
 
 SENARIO_DIR = ROOT / "data" / "senario_jp"
 OUTPUT_DIR  = SENARIO_DIR / "prompts"
@@ -97,45 +96,54 @@ def read_document(path: Path) -> str:
     raise ValueError(f"Unsupported format: {path.suffix}")
 
 
-def generate_dynamic_sections(client: genai.Client, japanese_text: str) -> str:
-    response = client.models.generate_content(
-        model=NOTEBOOKLM_PROMPT_MODEL,
-        contents=[_META_PROMPT + japanese_text],
-        config=types.GenerateContentConfig(
-            tools=[types.Tool(google_search=types.GoogleSearch())],
-            temperature=0.3,
-        ),
-    )
-    return (response.text or "").strip()
+def generate_dynamic_sections(japanese_text: str, model: str = NOTEBOOKLM_PROMPT_MODEL) -> str:
+    """Web検索を有効にしてドメイン適応プロンプトを生成する。
 
-
-def build_prompt(dynamic_sections: str) -> str:
-    return dynamic_sections
+    プロバイダはモデル名で決まる（gpt-* → OpenAI の web_search、
+    それ以外 → Gemini の Google 検索グラウンディング）。
+    """
+    return llm.generate_text(model, _META_PROMPT + japanese_text, search=True, temperature=0.3)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="日本語資料から NotebookLM 用プロンプトを生成する")
+    parser.add_argument(
+        "--model", default=NOTEBOOKLM_PROMPT_MODEL, metavar="MODEL",
+        help=f"使用モデル（gpt-* なら OpenAI、それ以外は Gemini。既定: {NOTEBOOKLM_PROMPT_MODEL}）",
+    )
+    args = parser.parse_args()
+
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    client = genai.Client(api_key=GEMINI_API_KEY)
 
     inputs = sorted(f for f in SENARIO_DIR.iterdir() if f.suffix.lower() in INPUT_EXTS)
     if not inputs:
         print(f"No .docx or .pdf files found in {SENARIO_DIR.relative_to(ROOT)}")
         return
 
+    failed = 0
     for src in inputs:
         out = OUTPUT_DIR / f"{src.stem}_prompt.txt"
         print(f"Processing: {src.name}")
         japanese_text = read_document(src)
         print(f"  {len(japanese_text)} chars extracted")
 
-        print("  Generating domain-adapted prompt (Gemini)...")
-        dynamic_sections = generate_dynamic_sections(client, japanese_text)
+        print(f"  Generating domain-adapted prompt [{args.model} / {llm.provider(args.model)}]...")
+        prompt = generate_dynamic_sections(japanese_text, model=args.model)
 
-        prompt = build_prompt(dynamic_sections)
+        # 空の応答をそのまま書き出すと 0 バイトのプロンプトができてしまう。
+        # 既存ファイルも壊さないよう、書かずにスキップする。
+        if not prompt:
+            print(f"  ERROR: {args.model} が空の応答を返しました。書き出しをスキップします。", file=sys.stderr)
+            failed += 1
+            continue
+
         out.write_text(prompt, encoding="utf-8")
         print(f"  → {out.relative_to(ROOT)} ({len(prompt)} chars)")
+
+    if failed:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

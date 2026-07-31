@@ -71,13 +71,34 @@ def check_api_error(e: Exception) -> None:
 
 # ── テキスト生成 ──────────────────────────────────────────────────────────────
 
-def generate_text(model: str, prompt: str) -> str:
-    """プレーンテキストを生成して返す。"""
+def generate_text(model: str, prompt: str, *, search: bool = False, temperature: float | None = None) -> str:
+    """プレーンテキストを生成して返す。
+
+    Args:
+        search: Web検索ツールを有効にする。OpenAI は Responses API の `web_search`、
+                Gemini は Google 検索グラウンディングを使う。用語の正式な英語表記を
+                実際に調べさせたい場合に使う。
+        temperature: Gemini 経路のみ有効。OpenAI の推論モデルは非対応なので無視する。
+    """
     try:
         if is_openai(model):
-            resp = openai_client.get_openai_client().responses.create(model=model, input=prompt)
+            kwargs = {"tools": [{"type": "web_search"}]} if search else {}
+            resp = openai_client.get_openai_client().responses.create(
+                model=model, input=prompt, **kwargs
+            )
             return (resp.output_text or "").strip()
-        resp = gemini_client.get_genai_client().models.generate_content(model=model, contents=[prompt])
+
+        from google.genai import types
+        cfg: dict = {}
+        if search:
+            cfg["tools"] = [types.Tool(google_search=types.GoogleSearch())]
+        if temperature is not None:
+            cfg["temperature"] = temperature
+        resp = gemini_client.get_genai_client().models.generate_content(
+            model=model,
+            contents=[prompt],
+            config=types.GenerateContentConfig(**cfg) if cfg else None,
+        )
         return (resp.text or "").strip()
     except Exception as e:
         check_api_error(e)

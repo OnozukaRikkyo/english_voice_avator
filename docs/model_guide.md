@@ -64,5 +64,16 @@ GEMINI_API_KEY=...
 OPENAI_API_KEY=...
 ```
 
-なお `tools/gen_notebooklm_prompt.py` だけは Google 検索グラウンディングを使うため
-`NOTEBOOKLM_PROMPT_MODEL`（`gemini-2.5-flash`）で Gemini 固定です。
+## Web検索を使う工程
+
+`tools/gen_notebooklm_prompt.py` は用語の正式な英語表記を実際に調べさせるため、
+Web検索ツールを有効にして呼びます（`NOTEBOOKLM_PROMPT_MODEL` = `gpt-5.6-luna` / OpenAI）。
+これも同じ規約で切り替わります。
+
+- **OpenAI** — Responses API の `web_search` ツール
+- **Gemini** — Google 検索グラウンディング
+
+```bash
+./gen_notebooklm_prompt.sh                              # 既定モデル
+./gen_notebooklm_prompt.sh --model gemini-2.5-flash     # この実行だけ変更
+```

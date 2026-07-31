@@ -8,6 +8,10 @@ utimes/openai_client.py と同じ構成。pipeline/llm.py から使う。
 import os
 import sys
 
+from dotenv import load_dotenv
+
+load_dotenv()  # config.py を経由せず単体で import されても .env が効くようにする
+
 # ── カスタム例外 ──────────────────────────────────────────────────────────────
 
 class OpenAiApiError(Exception):
