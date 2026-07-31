@@ -1,9 +1,10 @@
 #!/bin/bash
-# 音声を1本処理して台本と日本語訳を作る。何度も繰り返す用。
+# 【音声1本を指定して】台本と日本語訳を作る。何度も繰り返す用。
+# inbox にあるものをまとめて処理したいときは ./run.sh を使う。
 #
-#   ./run_batch.sh path/to/audio.m4a        音声を指定して処理する
-#   ./run_batch.sh                          data/inbox/ にあるものを処理する
-#   ./run_batch.sh audio.m4a --keep-inbox   処理後も inbox にファイルを残す
+#   ./run_audio.sh path/to/audio.m4a        音声を指定して処理する
+#   ./run_audio.sh                          data/inbox/ にあるものを処理する
+#   ./run_audio.sh audio.m4a --keep-inbox   処理後も inbox にファイルを残す
 #
 # 動画生成（heygen / concat_video）は保留中のため実行されません。
 # 完了後、処理済みの音声は data/inbox/ から取り除かれるので、

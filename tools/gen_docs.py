@@ -81,7 +81,7 @@ def gen_user_guide() -> str:
         "## 使い方A: 音声 → 台本\n"
         "\n"
         "```bash\n"
-        "./run_batch.sh path/to/audio.m4a     # 音声を指定して1本処理する\n"
+        "./run_audio.sh path/to/audio.m4a     # 音声を指定して1本処理する\n"
         "```\n"
         "\n"
         "何本も続けて処理する場合はこれが一番手軽です。処理後は inbox から\n"

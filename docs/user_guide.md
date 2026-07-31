@@ -37,7 +37,7 @@ HEYGEN_API_KEY=...        # 動画生成を再開するときのみ
 ## 使い方A: 音声 → 台本
 
 ```bash
-./run_batch.sh path/to/audio.m4a     # 音声を指定して1本処理する
+./run_audio.sh path/to/audio.m4a     # 音声を指定して1本処理する
 ```
 
 何本も続けて処理する場合はこれが一番手軽です。処理後は inbox から
