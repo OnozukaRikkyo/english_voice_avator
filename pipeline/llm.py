@@ -6,7 +6,7 @@ utimes/code/llm.py と同じ規約なので、両プロジェクトで判断が�
 つまり config.py のモデル名を1行書き換えるだけでプロバイダが切り替わる:
 
     TRANSCRIBE_MODEL = "gpt-transcribe"      # OpenAI
-    TRANSCRIBE_MODEL = "gemini-2.5-flash"    # Gemini
+    TRANSCRIBE_MODEL = "gemini-3.6-flash"    # Gemini
 
 提供する関数は3つで、どちらのプロバイダでも同じ戻り値の型になる:
 

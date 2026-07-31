@@ -32,8 +32,8 @@
 
 ```bash
 ./run.sh --model-rewrite gpt-5.6-luna
-./run.sh --model-transcribe gemini-2.5-flash
-./gen_notebooklm_prompt.sh --model-notebooklm gemini-2.5-flash
+./run.sh --model-transcribe gemini-3.6-flash
+./gen_notebooklm_prompt.sh --model-notebooklm gemini-3.6-flash
 ```
 
 プリセットと併用でき、個別指定が勝ちます。
@@ -115,5 +115,5 @@ Web検索ツールを有効にして呼びます（`NOTEBOOKLM_PROMPT_MODEL` = `
 
 ```bash
 ./gen_notebooklm_prompt.sh                              # 既定モデル
-./gen_notebooklm_prompt.sh --model gemini-2.5-flash     # この実行だけ変更
+./gen_notebooklm_prompt.sh --model-notebooklm gemini-3.6-flash  # この実行だけ変更
 ```

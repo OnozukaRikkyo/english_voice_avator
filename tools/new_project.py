@@ -49,7 +49,7 @@ def new_project(audio_path: Path) -> str:
     print(f"Created project: {slug}")
     print(f"  audio → data/{slug}/raw/{audio_path.name}")
     print(f"\nNext step:")
-    print(f"  python run_pipeline.py --project {slug}")
+    print(f"  ./run.sh --project {slug}")
     return slug
 
 

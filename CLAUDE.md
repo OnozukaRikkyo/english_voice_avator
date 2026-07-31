@@ -5,27 +5,23 @@
 
 ## Overview
 
-Transforms podcast/news audio into an AI avatar video using HeyGen.
+Turns an English audio file into an English narration script (SSML) and its
+Japanese translation. Avatar-video generation exists but is currently suspended.
 
 ## Pipeline Flow
 
 ```
-  Raw input (m4a / mp4 / mp3)
-    ↓ [convert]
-  Converted audio (mp3)
-    ↓ [transcribe]
-  English transcript
-    ↓ [rewrite]
-  Narration script (YouTube style, Gemini 3.5 Flash)
-    ↓ [concat_narration]
-  Narration script (YouTube style, Gemini 3.5 Flash)
-    ↓ [translate]
-  Narration script (YouTube style, Gemini 3.5 Flash)
-    ↓ [heygen]
-  Avatar video (mp4, HeyGen)
-    ↓ [concat_video]
-  Avatar video (mp4, HeyGen)
+  raw/                → [convert         ] → audio/
+  audio/              → [transcribe      ] → transcript/
+  transcript/         → [rewrite         ] → narration/parts/
+  narration/parts/    → [concat_narration] → narration/   ← 出力1
+  narration/_full.txt → [translate       ] → translation/   ← 出力2
+  narration/parts/    → [heygen          ] → video/parts/   （保留中・実行されない）
+  video/parts/        → [concat_video    ] → video/   （保留中・実行されない）
 ```
+
+`narration/` は2つに分かれる: `translate` は `_full.txt` を、`heygen` は
+`parts/_part*.txt` を読む。同じステージから別のファイルを読む二系統。
 
 ## Data Layout
 
@@ -33,16 +29,25 @@ Each source file becomes one **project directory** under `data/`:
 
 ```
 data/
+  inbox/                    drop zone — put source audio here
+  senario_jp/               docx/pdf for the NotebookLM prompt generator
   {project_slug}/
-    raw/         raw input (m4a / mp4 / mp3)
-    audio/       converted mp3
-    transcript/  English transcript
-    narration/   rewritten YouTube narration
-    video/       avatar video (mp4)
+    raw/                    raw input (m4a / mp4 / mp3)
+    audio/                  converted mp3
+    transcript/             English transcript, verbatim
+    narration/
+      {stem}_full.txt       ← output 1: English narration script (SSML)
+      parts/                  _part*.txt — split segments
+    translation/
+      {stem}_ja.txt         ← output 2: Japanese translation
+    video/                  suspended
+      parts/
 ```
 
 Stage directories use **semantic names** (not numbers).
 Inserting a new step never requires renaming existing directories.
+`_part*` files always live in `parts/`, never directly in the stage dir —
+enforced by `tools/check_design.py`.
 
 ## Stage Reference
 
@@ -50,49 +55,48 @@ Inserting a new step never requires renaming existing directories.
 |-----------|----------|
 | `raw/` | Raw input (m4a / mp4 / mp3) |
 | `audio/` | Converted audio (mp3) |
-| `transcript/` | English transcript |
-| `narration/` | Narration script (YouTube style, Gemini 3.5 Flash) |
-| `translation/` | Japanese translation of narration (Gemini 2.5 Flash) |
+| `transcript/` | English transcript (verbatim) |
+| `narration/` | English narration script (SSML) |
+| `translation/` | Japanese translation of the narration |
 | `video/` | Avatar video (mp4, HeyGen) |
 
 ## Step I/O Reference
 
-| Step | Reads from | Writes to | Module |
-|------|-----------|----------|--------|
-| `convert` | `raw/` | `audio/` | `pipeline/convert.py` |
-| `transcribe` | `audio/` | `transcript/` | `pipeline/transcribe.py` |
-| `rewrite` | `transcript/` | `narration/` | `pipeline/rewrite.py` |
-| `concat_narration` | `narration/` | `narration/` | `pipeline/concat_narration.py` |
-| `translate` | `narration/` | `translation/` | `pipeline/translate.py` |
-| `heygen` | `narration/` | `video/` | `pipeline/heygen.py` |
-| `concat_video` | `video/` | `video/` | `pipeline/concat_video.py` |
+| Step | Reads from | Writes to | Module | Status |
+|------|-----------|----------|--------|--------|
+| `convert` | `raw/` | `audio/` | `pipeline/convert.py` | active |
+| `transcribe` | `audio/` | `transcript/` | `pipeline/transcribe.py` | active |
+| `rewrite` | `transcript/` | `narration/` | `pipeline/rewrite.py` | active |
+| `concat_narration` | `narration/` | `narration/` | `tools/concat_narration.py` | active |
+| `translate` | `narration/` | `translation/` | `pipeline/translate.py` | active |
+| `heygen` | `narration/` | `video/` | `pipeline/heygen.py` | **suspended** |
+| `concat_video` | `video/` | `video/` | `tools/concat_video.py` | **suspended** |
 
 ## How to Add a New Step
 
 1. Add the new stage name to `STAGES` in `pipeline/config.py` at the correct position.
    (Current order: `["raw", "audio", "transcript", "narration", "translation", "video"]`)
 2. Add the step to `STEP_IO` with its `(input_stage, output_stage)`.
-3. Create `pipeline/<step>.py` with `def run(project: str) -> list[Path]:`.
+3. Create the module with `def run(project: str) -> list[Path]:` —
+   `pipeline/<step>.py` if it calls an API, `tools/<step>.py` if it is local-only.
 4. Add the step name to `ALL_STEPS` in `run_pipeline.py`.
 5. Save and the hook will regenerate this file automatically.
 
 ## How to Run
 
 ```bash
-# Full pipeline (all projects)
-python run_pipeline.py
-
-# Specific steps
-python run_pipeline.py --steps convert,transcribe
-
-# Single project
-python run_pipeline.py --project my_project
-
-# Check HeyGen API / configured IDs
-python heygen_check.py
+./run.sh                            # everything in data/inbox/
+./run_audio.sh path/to/audio.m4a    # one specified file
+./run.sh --steps convert,transcribe # specific steps
+./run.sh --project my_project       # one project
+./run.sh --force                    # ignore existing output and rebuild
+./tool_llm_check.sh                 # which model each step uses
 ```
 
-Each step is **idempotent** — existing output files are skipped.
+Each step is **idempotent** — existing output files are skipped unless `--force`.
+
+Script names are prefixed by role: `run` = whole pipeline, `step_` = one stage,
+`tool_` = outside the pipeline, `gen_` = produces an artifact.
 
 ## Models & Providers
 
@@ -113,7 +117,7 @@ Per-run override without editing config:
 
 ```bash
 ./run.sh --model-rewrite gpt-5.6-luna
-./run.sh --model-transcribe gemini-2.5-flash
+./run.sh --model-transcribe gemini-3.6-flash
 ./tool_llm_check.sh --live        # which provider each step resolves to + connectivity
 ```
 

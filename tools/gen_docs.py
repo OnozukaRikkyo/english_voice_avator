@@ -251,7 +251,7 @@ def gen_video_guide() -> str:
         "### HeyGen API / アバターIDの確認\n"
         "\n"
         "```bash\n"
-        "python heygen_check.py\n"
+        "python heygen_check.py    # 動画生成を再開するときのみ\n"
         "```\n"
         "\n"
         "### 生成物をすべて消してやり直す\n"
@@ -364,8 +364,8 @@ def gen_model_guide() -> str:
         "\n"
         "```bash\n"
         "./run.sh --model-rewrite gpt-5.6-luna\n"
-        "./run.sh --model-transcribe gemini-2.5-flash\n"
-        "./gen_notebooklm_prompt.sh --model-notebooklm gemini-2.5-flash\n"
+        "./run.sh --model-transcribe gemini-3.6-flash\n"
+        "./gen_notebooklm_prompt.sh --model-notebooklm gemini-3.6-flash\n"
         "```\n"
         "\n"
         "プリセットと併用でき、個別指定が勝ちます。\n"
@@ -448,7 +448,7 @@ def gen_model_guide() -> str:
         "\n"
         "```bash\n"
         "./gen_notebooklm_prompt.sh                              # 既定モデル\n"
-        "./gen_notebooklm_prompt.sh --model gemini-2.5-flash     # この実行だけ変更\n"
+        "./gen_notebooklm_prompt.sh --model-notebooklm gemini-3.6-flash  # この実行だけ変更\n"
         "```\n"
     )
 

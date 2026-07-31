@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Main pipeline orchestrator.
 
-Usage:
-  python run_pipeline.py [--steps STEP1,STEP2,...] [--project SLUG]
-                         [--force] [--max-chars N]
+Entry point is ./run.sh (this file is not meant to be run directly).
+
+  ./run.sh [--steps STEP1,STEP2,...] [--project SLUG] [--force] [--max-chars N]
+           [--provider {openai,gemini}] [--model-<step> MODEL]
 
 Steps (default: all):
   convert          raw/             → audio/

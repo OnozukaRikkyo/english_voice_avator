@@ -1,4 +1,4 @@
-"""Stage transcript→narration: English text → YouTube narration (Gemini).
+"""Stage transcript→narration: English transcript → narration script (SSML).
 
 REWRITE_MAX_CHARS in config.py controls segment size:
   -1  → unlimited: full narration in one file, no split instructions in prompt

@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """Generate NotebookLM prompts from Japanese scenario documents (docx / pdf).
 
-Scans data/senario_jp/ for .docx and .pdf files.
-For each file, uses Gemini to:
-  1. Detect the document's domain (war, politics, economics, technology, etc.)
-  2. Generate a domain-appropriate Role & Objective
-  3. Extract difficult terminology into a Document-Specific Vocabulary Guide
-  4. Generate domain-appropriate Core Instructions
-
-Only the Expected Output Format is fixed across all documents.
+Scans data/senario_jp/ for .docx and .pdf files. For each file the configured
+model (NOTEBOOKLM_PROMPT_MODEL — gpt-* → OpenAI, else Gemini) reads it with web
+search enabled and writes one NotebookLM system prompt containing:
+  1. A Role & Objective matched to the document's domain
+  2. A Document-Specific Vocabulary Guide of the genuinely unfamiliar terms
+  3. Core Instructions naming the authoritative sites to verify against
 
 Usage:
-  python tools/gen_notebooklm_prompt.py
+  ./gen_notebooklm_prompt.sh
+  ./gen_notebooklm_prompt.sh --model-notebooklm gemini-3.6-flash
 """
 import argparse
 import sys
@@ -27,7 +26,7 @@ SENARIO_DIR = ROOT / "data" / "senario_jp"
 OUTPUT_DIR  = SENARIO_DIR / "prompts"
 INPUT_EXTS  = {".docx", ".pdf"}
 
-# ── Gemini meta-prompt ────────────────────────────────────────────────────────
+# ── メタプロンプト（プロンプトを書かせるプロンプト）────────────────────────────────────────────────────────
 
 _META_PROMPT = """\
 You are an expert analyst and YouTube scriptwriting consultant. \

@@ -47,7 +47,7 @@ HeyGen の画面字幕を消す方法が未解決のため保留しています�
 ### HeyGen API / アバターIDの確認
 
 ```bash
-python heygen_check.py
+python heygen_check.py    # 動画生成を再開するときのみ
 ```
 
 ### 生成物をすべて消してやり直す

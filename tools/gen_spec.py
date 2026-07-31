@@ -15,6 +15,10 @@ from pipeline.config import (
     TRANSCRIBE_MODEL, REWRITE_MODEL, TRANSLATE_MODEL,
     REWRITE_MAX_CHARS, HEYGEN_RATIO,
 )
+from run_pipeline import ALL_STEPS  # 実行される工程だけ。残りは保留中。
+
+
+SUSPENDED = [s for s in STEP_IO if s not in ALL_STEPS]
 
 
 def _provider(model: str) -> str:
@@ -22,15 +26,54 @@ def _provider(model: str) -> str:
     return "OpenAI" if model.startswith("gpt-") else "Gemini"
 
 
+def _module_path(step: str) -> str:
+    """Locate the module that implements a step, rather than assuming a package.
+
+    API を叩く工程は pipeline/、ローカル処理だけの工程は tools/ にある。
+    実在するファイルを見て決めるので、移動しても表が古くならない。
+    """
+    for cand in (f"pipeline/{step}.py", f"tools/{step}.py"):
+        if (ROOT / cand).exists():
+            return cand
+    return "-"
+
+
+# 利用者が受け取る最終成果物を作る工程（rewrite は parts/ 止まりなので含めない）
+_FINAL_OUTPUTS = {"concat_narration": "出力1", "translate": "出力2"}
+
+# ステージ名だけでは足りない入出力の実体
+_DETAIL = {
+    "rewrite":          (None, "narration/parts/"),
+    "concat_narration": ("narration/parts/", None),
+    "translate":        ("narration/_full.txt", None),
+    "heygen":           ("narration/parts/", "video/parts/"),
+    "concat_video":     ("video/parts/", None),
+}
+
+
 def _pipeline_diagram() -> str:
-    lines = []
+    """One row per step: source → [step] → destination.
+
+    連鎖の図にすると concat_narration（narration → narration）のように
+    入出力が同じステージの工程で同じ行が重複してしまう。1工程1行なら
+    分岐（narration から translate と heygen の2方向）も正しく表せる。
+    """
+    rows = []
     for step, (src, dst) in STEP_IO.items():
-        src_label = STAGE_LABELS.get(src, src)
-        dst_label = STAGE_LABELS.get(dst, dst)
-        lines.append(f"  {src_label}")
-        lines.append(f"    ↓ [{step}]")
-    last_dst = list(STEP_IO.values())[-1][1]
-    lines.append(f"  {STAGE_LABELS.get(last_dst, last_dst)}")
+        d_src, d_dst = _DETAIL.get(step, (None, None))
+        rows.append((d_src or f"{src}/", step, d_dst or f"{dst}/", step))
+    w_src = max(len(r[0]) for r in rows)
+    w_step = max(len(r[1]) for r in rows)
+
+    lines = []
+    for src, step, dst, name in rows:
+        if name in SUSPENDED:
+            note = "   （保留中・実行されない）"
+        elif name in _FINAL_OUTPUTS:
+            note = f"   ← {_FINAL_OUTPUTS[name]}"
+        else:
+            note = ""
+        lines.append(f"  {src:<{w_src}} → [{step:<{w_step}}] → {dst}{note}")
     return "\n".join(lines)
 
 
@@ -42,10 +85,11 @@ def _stage_table() -> str:
 
 
 def _step_io_table() -> str:
-    rows = ["| Step | Reads from | Writes to | Module |",
-            "|------|-----------|----------|--------|"]
+    rows = ["| Step | Reads from | Writes to | Module | Status |",
+            "|------|-----------|----------|--------|--------|"]
     for step, (src, dst) in STEP_IO.items():
-        rows.append(f"| `{step}` | `{src}/` | `{dst}/` | `pipeline/{step}.py` |")
+        status = "**suspended**" if step in SUSPENDED else "active"
+        rows.append(f"| `{step}` | `{src}/` | `{dst}/` | `{_module_path(step)}` | {status} |")
     return "\n".join(rows)
 
 
@@ -55,7 +99,8 @@ def _how_to_add_step() -> str:
 1. Add the new stage name to `STAGES` in `pipeline/config.py` at the correct position.
    (Current order: `["{stage_list}"]`)
 2. Add the step to `STEP_IO` with its `(input_stage, output_stage)`.
-3. Create `pipeline/<step>.py` with `def run(project: str) -> list[Path]:`.
+3. Create the module with `def run(project: str) -> list[Path]:` —
+   `pipeline/<step>.py` if it calls an API, `tools/<step>.py` if it is local-only.
 4. Add the step name to `ALL_STEPS` in `run_pipeline.py`.
 5. Save and the hook will regenerate this file automatically.\
 '''
@@ -70,7 +115,8 @@ def generate() -> str:
 
 ## Overview
 
-Transforms podcast/news audio into an AI avatar video using HeyGen.
+Turns an English audio file into an English narration script (SSML) and its
+Japanese translation. Avatar-video generation exists but is currently suspended.
 
 ## Pipeline Flow
 
@@ -78,22 +124,34 @@ Transforms podcast/news audio into an AI avatar video using HeyGen.
 {_pipeline_diagram()}
 ```
 
+`narration/` は2つに分かれる: `translate` は `_full.txt` を、`heygen` は
+`parts/_part*.txt` を読む。同じステージから別のファイルを読む二系統。
+
 ## Data Layout
 
 Each source file becomes one **project directory** under `data/`:
 
 ```
 data/
+  inbox/                    drop zone — put source audio here
+  senario_jp/               docx/pdf for the NotebookLM prompt generator
   {{project_slug}}/
-    raw/         raw input (m4a / mp4 / mp3)
-    audio/       converted mp3
-    transcript/  English transcript
-    narration/   rewritten YouTube narration
-    video/       avatar video (mp4)
+    raw/                    raw input (m4a / mp4 / mp3)
+    audio/                  converted mp3
+    transcript/             English transcript, verbatim
+    narration/
+      {{stem}}_full.txt       ← output 1: English narration script (SSML)
+      parts/                  _part*.txt — split segments
+    translation/
+      {{stem}}_ja.txt         ← output 2: Japanese translation
+    video/                  suspended
+      parts/
 ```
 
 Stage directories use **semantic names** (not numbers).
 Inserting a new step never requires renaming existing directories.
+`_part*` files always live in `parts/`, never directly in the stage dir —
+enforced by `tools/check_design.py`.
 
 ## Stage Reference
 
@@ -110,20 +168,18 @@ Inserting a new step never requires renaming existing directories.
 ## How to Run
 
 ```bash
-# Full pipeline (all projects)
-python run_pipeline.py
-
-# Specific steps
-python run_pipeline.py --steps convert,transcribe
-
-# Single project
-python run_pipeline.py --project my_project
-
-# Check HeyGen API / configured IDs
-python heygen_check.py
+./run.sh                            # everything in data/inbox/
+./run_audio.sh path/to/audio.m4a    # one specified file
+./run.sh --steps convert,transcribe # specific steps
+./run.sh --project my_project       # one project
+./run.sh --force                    # ignore existing output and rebuild
+./tool_llm_check.sh                 # which model each step uses
 ```
 
-Each step is **idempotent** — existing output files are skipped.
+Each step is **idempotent** — existing output files are skipped unless `--force`.
+
+Script names are prefixed by role: `run` = whole pipeline, `step_` = one stage,
+`tool_` = outside the pipeline, `gen_` = produces an artifact.
 
 ## Models & Providers
 
@@ -144,7 +200,7 @@ Per-run override without editing config:
 
 ```bash
 ./run.sh --model-rewrite gpt-5.6-luna
-./run.sh --model-transcribe gemini-2.5-flash
+./run.sh --model-transcribe gemini-3.6-flash
 ./tool_llm_check.sh --live        # which provider each step resolves to + connectivity
 ```
 

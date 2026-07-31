@@ -6,18 +6,19 @@ data/
   {project}/
     raw/          raw input files  (m4a / mp4 / mp3)
     audio/        converted mp3
-    transcript/   English transcription (Gemini)
-    narration/    rewritten YouTube narration (_full.txt = final)
+    transcript/   English transcript, verbatim
+    narration/    English narration script (_full.txt = final)
       parts/      split segments (_part*.txt) — heygen input
     translation/  Japanese translation of narration (_ja.txt)
-    video/        avatar video mp4 (final .mp4)
+    video/        avatar video mp4 (final .mp4)   ← 保留中
       parts/      per-segment videos (_part*.mp4) — heygen output
 
 Adding a new step
 -----------------
 1. Add the new stage name to STAGES (in the correct position).
 2. Add the new step to STEP_IO with its (input_stage, output_stage).
-3. Create pipeline/{step}.py with a run(project) function.
+3. Create the module with a run(project) function — pipeline/{step}.py for a
+   stage that calls an API, tools/{step}.py for a local-only one (concat_*).
 4. Add the step to ALL_STEPS in run_pipeline.py.
 tools/gen_spec.py will automatically regenerate CLAUDE.md.
 
@@ -39,11 +40,11 @@ HEYGEN_API_KEY = os.environ.get("HEYGEN_API_KEY", "")
 
 # ── Model constants ───────────────────────────────────────────────────────────
 # **モデル名がプロバイダを決める**: "gpt-" で始まれば OpenAI、それ以外は Gemini。
-# 以下の5定数が全モデルで、書き換えるだけで工程ごとに切り替わる
+# 以下の4定数が全モデルで、書き換えるだけで工程ごとに切り替わる
 # （pipeline/llm.py が振り分ける）。モデル名を書く場所はここ以外に無い。
 #
 #   例) TRANSCRIBE_MODEL = "gpt-transcribe"    → OpenAI
-#       TRANSCRIBE_MODEL = "gemini-2.5-flash"  → Gemini
+#       TRANSCRIBE_MODEL = "gemini-3.6-flash"  → Gemini
 #
 # 変更方法は4通り。優先順位は上から強い順:
 #   1. コマンドの引数   ./run.sh --model-rewrite MODEL
@@ -69,14 +70,14 @@ TRANSLATE_MODEL  = _model("TRANSLATE_MODEL",  "gemini-3.6-flash")    # 英語ナ
 NOTEBOOKLM_PROMPT_MODEL = _model("NOTEBOOKLM_PROMPT_MODEL", "gpt-5.6-luna")
 
 # ── プロバイダ一括切り替え ────────────────────────────────────────────────────
-# 上の5定数は工程ごとに最適なモデルを選ぶための「現在の設定」。
+# 上の4定数は工程ごとに最適なモデルを選ぶための「現在の設定」。
 # 全部まとめて片方に寄せたいときのために、プロバイダ別プリセットを用意する。
 #
 #   ./run.sh --provider openai      全工程を OpenAI に
 #   ./run.sh --provider gemini      全工程を Gemini に
 #   ./run.sh --provider openai --model-rewrite gemini-3.5-flash   個別指定が優先
 #
-# プリセットを使わなければ上の5定数がそのまま使われる。
+# プリセットを使わなければ上の4定数がそのまま使われる。
 MODEL_SLOTS = ("transcribe", "rewrite", "translate", "notebooklm")
 
 PRESETS: dict[str, dict[str, str]] = {
@@ -96,7 +97,7 @@ PRESETS: dict[str, dict[str, str]] = {
 
 
 def current_models() -> dict[str, str]:
-    """上の5定数を slot 名の dict にして返す（プリセット未指定時の既定）。"""
+    """上の4定数を slot 名の dict にして返す（プリセット未指定時の既定）。"""
     return {
         "transcribe":         TRANSCRIBE_MODEL,
         "rewrite":            REWRITE_MODEL,
@@ -108,10 +109,10 @@ def current_models() -> dict[str, str]:
 def resolve_models(provider: str | None = None, **overrides: str | None) -> dict[str, str]:
     """実際に使うモデルを決める。
 
-    優先順位: 個別指定 > プリセット > config.py の5定数。
+    優先順位: 個別指定 > プリセット > .env > config.py の既定値。
 
     Args:
-        provider: PRESETS のキー（"openai" / "gemini"）。None なら5定数をそのまま使う。
+        provider: PRESETS のキー（"openai" / "gemini"）。None なら4定数をそのまま使う。
         **overrides: slot 名 → モデル名。None の項目は無視する。
     """
     if provider is not None and provider not in PRESETS:
@@ -143,19 +144,20 @@ HEYGEN_RATIO     = "16:9"
 STAGES: list[str] = [
     "raw",          # source input files
     "audio",        # converted mp3
-    "transcript",   # English transcription
-    "narration",    # rewritten YouTube narration script
+    "transcript",   # English transcript, verbatim
+    "narration",    # English narration script (SSML)
     "translation",  # Japanese translation of narration
     "video",        # avatar video (mp4)
 ]
 
-# Human-readable label for each stage (used in generated docs)
+# Human-readable label for each stage (used in generated docs).
+# モデル名は書かない — 上のモデル定数と二重管理になり、片方だけ古くなる。
 STAGE_LABELS: dict[str, str] = {
     "raw":         "Raw input (m4a / mp4 / mp3)",
     "audio":       "Converted audio (mp3)",
-    "transcript":  "English transcript",
-    "narration":   "Narration script (YouTube style, Gemini 3.5 Flash)",
-    "translation": "Japanese translation of narration (Gemini 2.5 Flash)",
+    "transcript":  "English transcript (verbatim)",
+    "narration":   "English narration script (SSML)",
+    "translation": "Japanese translation of the narration",
     "video":       "Avatar video (mp4, HeyGen)",
 }
 
