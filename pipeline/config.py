@@ -39,13 +39,14 @@ HEYGEN_API_KEY = os.environ.get("HEYGEN_API_KEY", "")
 
 # ── Model constants ───────────────────────────────────────────────────────────
 # **モデル名がプロバイダを決める**: "gpt-" で始まれば OpenAI、それ以外は Gemini。
-# 下の4行を書き換えるだけで工程ごとに切り替わる（pipeline/llm.py が振り分ける）。
+# 以下の5定数が全モデルで、書き換えるだけで工程ごとに切り替わる
+# （pipeline/llm.py が振り分ける）。モデル名を書く場所はここ以外に無い。
 #
 #   例) TRANSCRIBE_MODEL = "gpt-transcribe"    → OpenAI
 #       TRANSCRIBE_MODEL = "gemini-2.5-flash"  → Gemini
 #
-# 実行時に一時的に変えたい場合は run_pipeline.py の
-# --model-transcribe / --model-rewrite / --model-translate を使う。
+# 現在の設定を一覧するには ./run_llm_check.sh
+# この実行だけ変えるには ./run.sh --model-<工程> MODEL
 TRANSCRIBE_MODEL = "gpt-transcribe"     # 音声 → テキスト
 REWRITE_MODEL    = "gemini-3.5-flash"   # 文字起こし → ナレーション台本
 TRANSLATE_MODEL  = "gemini-2.5-flash"   # 英語ナレーション → 日本語

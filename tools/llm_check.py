@@ -19,13 +19,17 @@ from pipeline import llm
 from pipeline.config import (
     GEMINI_API_KEY, OPENAI_API_KEY,
     TRANSCRIBE_MODEL, REWRITE_MODEL, TRANSLATE_MODEL, TRANSCRIBE_ENGLISH_MODEL,
+    NOTEBOOKLM_PROMPT_MODEL,
 )
 
+# (表示名, 定数名, 値, 実行時に上書きする方法)
+# config.py のモデル定数はここに全部並べる。増やしたらこの表にも足すこと。
 _STEPS = [
-    ("transcribe", TRANSCRIBE_MODEL),
-    ("  └ 英語化", TRANSCRIBE_ENGLISH_MODEL),
-    ("rewrite", REWRITE_MODEL),
-    ("translate", TRANSLATE_MODEL),
+    ("transcribe",  "TRANSCRIBE_MODEL",         TRANSCRIBE_MODEL,         "./run.sh --model-transcribe MODEL"),
+    ("  └ 英語化",  "TRANSCRIBE_ENGLISH_MODEL", TRANSCRIBE_ENGLISH_MODEL, "(config.py のみ)"),
+    ("rewrite",     "REWRITE_MODEL",            REWRITE_MODEL,            "./run.sh --model-rewrite MODEL"),
+    ("translate",   "TRANSLATE_MODEL",          TRANSLATE_MODEL,          "./run.sh --model-translate MODEL"),
+    ("notebooklm",  "NOTEBOOKLM_PROMPT_MODEL",  NOTEBOOKLM_PROMPT_MODEL,  "./gen_notebooklm_prompt.sh --model MODEL"),
 ]
 
 
@@ -34,17 +38,21 @@ def show_config() -> None:
     print(f"  GEMINI_API_KEY : {'設定済み' if GEMINI_API_KEY else '(未設定)'}")
     print(f"  OPENAI_API_KEY : {'設定済み' if OPENAI_API_KEY else '(未設定)'}")
 
-    print("\n=== 工程ごとのモデル ===")
-    for step, model in _STEPS:
-        note = ""
-        if step.startswith("  └") and not llm.is_openai(TRANSCRIBE_MODEL):
-            note = "  ← Gemini経路では使われない"
-        print(f"  {step:<12} {model:<22} {llm.provider(model)}{note}")
+    print("\n=== 工程ごとのモデル（config.py で変更）===")
+    print(f"  {'工程':<12} {'モデル':<22} {'提供元':<7} {'定数'}")
+    for step, const, model, _ in _STEPS:
+        unused = step.startswith("  └") and not llm.is_openai(TRANSCRIBE_MODEL)
+        note = "  ← Gemini経路では未使用" if unused else ""
+        print(f"  {step:<12} {model:<22} {llm.provider(model):<7} {const}{note}")
 
-    needed = {llm.provider(m) for _, m in _STEPS}
-    if not llm.is_openai(TRANSCRIBE_MODEL):
-        needed.discard(llm.provider(TRANSCRIBE_ENGLISH_MODEL))
-        needed = {llm.provider(m) for s, m in _STEPS if not s.startswith("  └")}
+    print("\n=== この実行だけ変える ===")
+    for step, _, _, how in _STEPS:
+        print(f"  {step:<12} {how}")
+
+    # 実際に使われるモデルだけを対象にキーの過不足を見る
+    active = [m for s, _, m, _ in _STEPS
+              if not (s.startswith("  └") and not llm.is_openai(TRANSCRIBE_MODEL))]
+    needed = {llm.provider(m) for m in active}
     missing = [
         p for p in needed
         if (p == "Gemini" and not GEMINI_API_KEY) or (p == "OpenAI" and not OPENAI_API_KEY)
@@ -58,7 +66,7 @@ def show_config() -> None:
 def check_live() -> None:
     print("\n=== 疎通確認（実際に呼び出します）===")
     tested: set[str] = set()
-    for step, model in _STEPS:
+    for step, _, model, _how in _STEPS:
         if model in tested:
             continue
         tested.add(model)
