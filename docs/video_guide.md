@@ -1,4 +1,4 @@
-# 新規動画の作成手順
+# 音声から台本を作る手順
 
 ## 手順
 
@@ -11,17 +11,37 @@ data/inbox/
 
 対応フォーマット: `.m4a` / `.mp4` / `.mp3`
 
+音声の言語は問いません。英語以外の音声は文字起こしの時点で英訳され、
+`transcript/` には**常に英語**が出力されます。
+
 ### 2. パイプラインを実行する
 
 ```bash
-python run_pipeline.py
+./run.sh
 ```
 
 これだけです。以下がすべて自動で実行されます：
 
 1. `data/inbox/` をスキャンし、ファイル名からプロジェクトを自動作成
-2. パイプライン実行: `convert → transcribe → rewrite → concat_narration → translate → heygen → concat_video`
-3. 動画・ナレーションの結合
+2. パイプライン実行: `convert → transcribe → rewrite → concat_narration → translate`
+
+最終成果物は以下の2つです：
+
+- `data/{project}/narration/*_full.txt` — 英語ナレーション台本（SSML）
+- `data/{project}/translation/*_ja.txt` — その日本語訳
+
+## 保留中のステップ
+
+`heygen` / `concat_video` は現在**実行されません**。
+HeyGen の画面字幕を消す方法が未解決のため保留しています。
+
+調査は `./run_investigate_caption.sh` で実行できます（実 API 呼び出しと
+動画フレームの画素解析で字幕バーの位置を測定し、
+`data/caption_investigation/report.md` に結果を出力します）。
+
+再開するには `run_pipeline.py` の `ALL_STEPS` にある該当行と、
+`main()` 内の対応する分岐のコメントを外してください。
+モジュール本体（`pipeline/heygen.py` / `tools/concat_video.py`）は残してあります。
 
 ## トラブルシューティング
 
@@ -30,3 +50,11 @@ python run_pipeline.py
 ```bash
 python heygen_check.py
 ```
+
+### 生成物をすべて消してやり直す
+
+```bash
+python tools/clean_data.py
+```
+
+`data/` 配下は丸ごと git 管理外です。すべて元音声から再生成できます。
