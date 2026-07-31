@@ -11,6 +11,8 @@ Steps (default: all):
   rewrite          transcript/      → narration/parts/
   concat_narration narration/parts/ → narration/*_full.txt
   translate        narration/       → translation/
+
+Suspended (on hold — HeyGen caption issue unresolved):
   heygen           narration/parts/ → video/parts/
   concat_video     video/parts/     → video/*.mp4
 
@@ -29,7 +31,18 @@ import time
 
 from pipeline.config import INBOX_DIR, DATA, all_projects, ensure_project_dirs, slugify
 
-ALL_STEPS = ["convert", "transcribe", "rewrite", "concat_narration", "translate", "heygen", "concat_video"]
+# SUSPENDED: heygen / concat_video are on hold until the HeyGen on-screen caption
+# problem is resolved (see tools/investigate_caption.py). The modules themselves are
+# left intact — uncomment the two entries below to re-enable video generation.
+ALL_STEPS = [
+    "convert",
+    "transcribe",
+    "rewrite",
+    "concat_narration",
+    "translate",
+    # "heygen",        # on hold
+    # "concat_video",  # on hold
+]
 _AUDIO_EXTS = {".m4a", ".mp4", ".mp3"}
 
 
@@ -126,13 +139,14 @@ def main() -> None:
                 from pipeline import translate
                 translate.run(project, force=args.force)
 
-            elif step == "heygen":
-                from pipeline import heygen
-                heygen.run(project, force=args.force)
-
-            elif step == "concat_video":
-                from tools.concat_video import concat_video
-                concat_video(project, force=args.force)
+            # SUSPENDED — see ALL_STEPS above.
+            # elif step == "heygen":
+            #     from pipeline import heygen
+            #     heygen.run(project, force=args.force)
+            #
+            # elif step == "concat_video":
+            #     from tools.concat_video import concat_video
+            #     concat_video(project, force=args.force)
 
             print(f"  done in {time.time() - t1:.1f}s")
 

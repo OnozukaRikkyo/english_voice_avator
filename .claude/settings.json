@@ -29,7 +29,15 @@
       "Bash(.venv/bin/python run_pipeline.py *)",
       "Bash(.venv/bin/python heygen_check.py *)",
       "Bash(.venv/bin/python tools/gen_notebooklm_prompt.py)",
-      "Bash(.venv/bin/pip show *)"
+      "Bash(.venv/bin/pip show *)",
+      "Bash(ffprobe /home/sonozuka/english_voice/avator/data/How_500_drones_paralyzed_Moscow/video/parts/How_500_drones_paralyzed_Moscow_part02.mp4)",
+      "Bash(chmod +x /home/sonozuka/english_voice/avator/gen_notebooklm_prompt.sh)",
+      "Bash(.venv/bin/python -c \"from pipeline.heygen import run; print\\('OK'\\)\")",
+      "Bash(xargs -I{} ffprobe -v error -show_streams -select_streams s -of json {})",
+      "Bash(xargs -I{} ffprobe -v error -show_streams -of json {})",
+      "Bash(python3 -c \"import json,sys; s=[x for x in json.load\\(sys.stdin\\)['streams'] if x['codec_type']=='video'][0]; print\\(s['width'], s['height']\\)\")",
+      "Bash(chmod +x /home/sonozuka/english_voice/avator/run_convert.sh /home/sonozuka/english_voice/avator/run_transcribe.sh /home/sonozuka/english_voice/avator/run_rewrite.sh /home/sonozuka/english_voice/avator/run_concat_narration.sh /home/sonozuka/english_voice/avator/run_translate.sh /home/sonozuka/english_voice/avator/run_heygen.sh /home/sonozuka/english_voice/avator/run_concat_video.sh)",
+      "Bash(.venv/bin/python3 -)"
     ]
   },
   "hooks": {
@@ -38,7 +46,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"SessionStart\", \"additionalContext\": \"## Pipeline design rules\\n- Entry point: python run_pipeline.py (no arguments needed for normal use)\\n- New audio files go in data/inbox/ — auto-scanned on every run\\n- MiniMax is FORBIDDEN: never add MiniMax code, imports, or references\\n- Project slug is always auto-derived from audio filename via slugify()\\n- Never rename existing files or directories\"}}'",
+            "command": "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"SessionStart\", \"additionalContext\": \"## Mandatory work process rules\\n1. Design-first: Before writing ANY code, output your design in text (which files, what structure, what each part does). No exceptions.\\n2. Code before web: Read source files and git log before using WebSearch/WebFetch/Agent.\\n3. Research to memory: Save findings from Agent/WebSearch to memory/ immediately — before writing code, before replying.\\n4. Launcher rule: Any new operational mode requires a .sh launcher script created in the same response as the code.\\n5. Entry point: ./run.sh only — no arguments to run_pipeline.py.\"}}'",
             "statusMessage": "Loading pipeline design rules..."
           }
         ]

@@ -67,7 +67,7 @@ def create_video(
     return video_id
 
 
-def wait_for_video(video_id: str, poll_interval: int = 10, timeout: int = 1800) -> str:
+def wait_for_video(video_id: str, poll_interval: int = 3, timeout: int = 1800) -> str:
     deadline = time.time() + timeout
     while time.time() < deadline:
         resp = requests.get(

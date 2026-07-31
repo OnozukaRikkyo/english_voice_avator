@@ -13,14 +13,9 @@ __pycache__/
 .idea/
 
 # Data (media + generated — store locally, not in git)
-data/input/
-data/eng_mp3/
-data/eng_text/
-data/eng_split/
-data/regen_mp3/
-data/voice_concat/
-data/concat_text/
-data/avatar_video/
+# Everything under data/ is either a media file or a pipeline artifact.
+# Both are reproducible from the source audio, so nothing here belongs in git.
+data/
 
 # OS
 .DS_Store

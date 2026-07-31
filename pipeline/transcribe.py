@@ -1,4 +1,9 @@
-"""Stage audio→transcript: mp3 → English text (Gemini)."""
+"""Stage audio→transcript: mp3 → English text (Gemini).
+
+The output is ALWAYS English, whatever language is spoken in the audio.
+Non-English speech is translated, not transcribed verbatim — the downstream
+rewrite step expects an English transcript.
+"""
 import io
 import time
 from pathlib import Path
@@ -9,6 +14,15 @@ from .config import GEMINI_API_KEY, GEMINI_TRANSCRIBE_MODEL, stage_dir, all_proj
 
 _IN, _OUT = STEP_IO["transcribe"]
 _client: genai.Client | None = None
+
+_PROMPT = (
+    "Transcribe this audio. The output MUST be in English, and in English only.\n"
+    "- If the audio is spoken in English, transcribe it verbatim.\n"
+    "- If the audio is spoken in any other language, translate it into English "
+    "as you transcribe. Do NOT output the original language.\n"
+    "Cover the entire audio from start to finish — do not summarize or omit anything.\n"
+    "Output the English text only: no preamble, no language labels, no commentary."
+)
 
 
 def _client_get() -> genai.Client:
@@ -45,10 +59,7 @@ def run(project: str, *, force: bool = False) -> list[Path]:
 
         response = client.models.generate_content(
             model=GEMINI_TRANSCRIBE_MODEL,
-            contents=[
-                uploaded,
-                "This audio is in English. Please transcribe it in English. Output the text only.",
-            ],
+            contents=[uploaded, _PROMPT],
         )
         out.write_text(response.text, encoding="utf-8")
         client.files.delete(name=uploaded.name)
