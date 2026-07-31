@@ -36,7 +36,7 @@
       "Bash(xargs -I{} ffprobe -v error -show_streams -select_streams s -of json {})",
       "Bash(xargs -I{} ffprobe -v error -show_streams -of json {})",
       "Bash(python3 -c \"import json,sys; s=[x for x in json.load\\(sys.stdin\\)['streams'] if x['codec_type']=='video'][0]; print\\(s['width'], s['height']\\)\")",
-      "Bash(chmod +x /home/sonozuka/english_voice/avator/run_convert.sh /home/sonozuka/english_voice/avator/run_transcribe.sh /home/sonozuka/english_voice/avator/run_rewrite.sh /home/sonozuka/english_voice/avator/run_concat_narration.sh /home/sonozuka/english_voice/avator/run_translate.sh /home/sonozuka/english_voice/avator/run_heygen.sh /home/sonozuka/english_voice/avator/run_concat_video.sh)",
+      "Bash(chmod +x /home/sonozuka/english_voice/avator/step_convert.sh /home/sonozuka/english_voice/avator/step_transcribe.sh /home/sonozuka/english_voice/avator/step_rewrite.sh /home/sonozuka/english_voice/avator/step_concat_narration.sh /home/sonozuka/english_voice/avator/step_translate.sh /home/sonozuka/english_voice/avator/step_heygen.sh /home/sonozuka/english_voice/avator/step_concat_video.sh)",
       "Bash(.venv/bin/python3 -)"
     ]
   },

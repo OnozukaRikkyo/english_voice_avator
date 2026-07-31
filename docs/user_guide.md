@@ -26,7 +26,7 @@ HEYGEN_API_KEY=...        # 動画生成を再開するときのみ
 ### 2. 設定を確認する
 
 ```bash
-./run_llm_check.sh
+./tool_llm_check.sh
 ```
 
 工程ごとにどのモデル・どの提供元を使う設定か、必要なキーが揃っているかが出ます。
@@ -90,8 +90,40 @@ cp your_doc.docx data/senario_jp/   # 1. 置く（.docx / .pdf）
 python tools/clean_data.py             # 生成物を全部消してやり直す
 ```
 
-工程ごとの個別実行用に `run_convert.sh` `run_transcribe.sh` `run_rewrite.sh`
-`run_concat_narration.sh` `run_translate.sh` も用意しています。
+---
+
+## スクリプト一覧
+
+接頭辞で役割が分かるようにしています。
+
+| 接頭辞 | 意味 |
+|---|---|
+| `run` | パイプライン全工程を実行する |
+| `step_` | 単一工程だけを実行する（全プロジェクト対象） |
+| `tool_` | パイプライン外の確認・調査 |
+| `gen_` | 生成物を作る（NotebookLM プロンプト） |
+
+```
+run.sh                        inbox の全件を処理する（標準入口）
+run_audio.sh <file>           音声1本を指定して処理する
+gen_notebooklm_prompt.sh      資料 → NotebookLM プロンプト
+
+step_convert.sh               音声形式の変換
+step_transcribe.sh            文字起こし
+step_rewrite.sh               ナレーション台本の生成
+step_concat_narration.sh      台本パートの結合
+step_translate.sh             日本語訳
+step_heygen.sh                アバター動画の生成（保留中）
+step_concat_video.sh          動画パートの結合（保留中）
+
+tool_llm_check.sh             モデルとAPIキーの確認
+tool_heygen_consent.sh        HeyGen アバターの同意リンク取得
+tool_heygen_test.sh           HeyGen のテスト動画を1本生成
+tool_test_caption.sh          HeyGen 字幕の挙動テスト
+tool_investigate_caption.sh   HeyGen 字幕の実証調査
+```
+
+各スクリプトの2行目に役割が書いてあります。
 
 ---
 
@@ -99,7 +131,7 @@ python tools/clean_data.py             # 生成物を全部消してやり直す
 
 | 症状 | 対処 |
 |---|---|
-| `GEMINI_API_KEY が未設定です` / `OPENAI_API_KEY が未設定です` | `.env` に該当キーを追加。`./run_llm_check.sh` で確認 |
+| `GEMINI_API_KEY が未設定です` / `OPENAI_API_KEY が未設定です` | `.env` に該当キーを追加。`./tool_llm_check.sh` で確認 |
 | 途中まで生成済みで先に進まない | 各工程は出力があるとスキップします。作り直すなら `--force` |
 | 出力が古い内容のまま | 同上。`--force` を付けるか `tools/clean_data.py` で消す |
 | モデルを変えたい | `./run.sh --provider openai`、または `pipeline/config.py` を編集（`model_guide.md`） |

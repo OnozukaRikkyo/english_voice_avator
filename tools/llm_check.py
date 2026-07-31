@@ -74,7 +74,7 @@ def check_live(models: dict[str, str]) -> None:
             continue
         tested.add(model)
         if model == models["transcribe"]:
-            print(f"  {model:<22} 音声モデルのため疎通確認はスキップ（./run_transcribe.sh で確認）")
+            print(f"  {model:<22} 音声モデルのため疎通確認はスキップ（./step_transcribe.sh で確認）")
             continue
         try:
             out = llm.generate_text(model, "Reply with exactly: OK")

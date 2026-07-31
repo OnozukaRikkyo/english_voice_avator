@@ -34,7 +34,7 @@ data/inbox/
 `heygen` / `concat_video` は現在**実行されません**。
 HeyGen の画面字幕を消す方法が未解決のため保留しています。
 
-調査は `./run_investigate_caption.sh` で実行できます（実 API 呼び出しと
+調査は `./tool_investigate_caption.sh` で実行できます（実 API 呼び出しと
 動画フレームの画素解析で字幕バーの位置を測定し、
 `data/caption_investigation/report.md` に結果を出力します）。
 

@@ -1,4 +1,5 @@
 #!/bin/bash
+# 【ツール】HeyGen で短いテスト動画を1本生成する
 # Generate one short test video to verify caption setting.
 # Output: /tmp/heygen_test.mp4
 cd "$(dirname "$0")"

@@ -51,7 +51,7 @@ HEYGEN_API_KEY = os.environ.get("HEYGEN_API_KEY", "")
 #   3. .env             REWRITE_MODEL=gemini-3.6-flash   ← コード編集なしで変えられる
 #   4. 下の既定値       このファイルを編集する
 #
-# 現在の設定を一覧するには ./run_llm_check.sh
+# 現在の設定を一覧するには ./tool_llm_check.sh
 
 
 def _model(env_name: str, default: str) -> str:

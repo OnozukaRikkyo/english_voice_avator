@@ -52,7 +52,7 @@ REWRITE_MODEL=gemini-3.6-flash
 TRANSLATE_MODEL=gpt-5.6-luna
 ```
 
-`./run_llm_check.sh` で反映を確認できます。
+`./tool_llm_check.sh` で反映を確認できます。
 
 ### 4. 既定値そのものを変える
 
@@ -66,10 +66,10 @@ TRANSCRIBE_MODEL = _model("TRANSCRIBE_MODEL", "gemini-3.6-flash")   # Gemini
 ## 確認する
 
 ```bash
-./run_llm_check.sh                    # 工程ごとのモデルとプロバイダ、キーの有無
-./run_llm_check.sh --provider openai  # プリセット適用後の姿を予習（変更はしない）
-./run_llm_check.sh --live             # 実際に呼び出して疎通確認
-./run_llm_check.sh --models           # 利用可能なモデル一覧
+./tool_llm_check.sh                    # 工程ごとのモデルとプロバイダ、キーの有無
+./tool_llm_check.sh --provider openai  # プリセット適用後の姿を予習（変更はしない）
+./tool_llm_check.sh --live             # 実際に呼び出して疎通確認
+./tool_llm_check.sh --models           # 利用可能なモデル一覧
 ```
 
 ## 文字起こしについて

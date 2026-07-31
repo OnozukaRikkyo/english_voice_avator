@@ -145,7 +145,7 @@ Per-run override without editing config:
 ```bash
 ./run.sh --model-rewrite gpt-5.6-luna
 ./run.sh --model-transcribe gemini-2.5-flash
-./run_llm_check.sh --live        # which provider each step resolves to + connectivity
+./tool_llm_check.sh --live        # which provider each step resolves to + connectivity
 ```
 
 ## Other Key Constants (`pipeline/config.py`)
