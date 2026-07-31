@@ -126,7 +126,16 @@ def resolve_models(provider: str | None = None, **overrides: str | None) -> dict
     return models
 
 
-REWRITE_MAX_CHARS = 7000  # ナレーションを ≤7000 文字のパートに自然な切れ目で分割させる
+# ナレーションの分割。-1 = 分割せず1本にまとめる（既定）。
+# N を指定すると ≤N 文字のパートに自然な切れ目で分割させる。
+#
+# 分割は heygen が「1パート = 1動画」で処理するためのものだった。
+# 動画生成が保留中のいまは分割する理由がなく、1本のほうが台本として扱いやすい。
+#
+# 注意: 無制限だとモデルが全文を1回の応答で返すため、非常に長い transcript では
+# 出力が途中で切れることがある。rewrite.py の検証がそれを検出して再生成する。
+# 切れが頻発するようなら N を指定して分割させる（./run.sh --max-chars 7000）。
+REWRITE_MAX_CHARS = -1
 
 # OpenAI /v1/audio/transcriptions のアップロード上限（25MB）。
 # 超える音声は llm.py が時間で等分割して送る。
