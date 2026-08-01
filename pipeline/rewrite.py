@@ -108,7 +108,16 @@ Return a JSON array of narration segments for AI voice synthesis:
 
 
 _MAX_ATTEMPTS = 3
-_MIN_RATIO = 0.30  # ナレーション合計が transcript のこの割合を下回ったら生成失敗とみなす
+
+# ナレーション合計が transcript のこの割合を下回ったら生成失敗とみなす。
+#
+# プロンプトは「要約するな・全網羅せよ・同等の長さに」と要求している。
+# 分割ありの実測は 51%、短い入力では 116% に達する。
+# 30% では明らかな要約（38,410字→11,774字＝31%）を通してしまったため引き上げた。
+#
+# 下限を上げすぎると、話者が繰り返しの多い喋り方をした回で誤検出しうる。
+# その場合は再生成が走るだけで壊れた成果物は残らないが、料金は増える。
+_MIN_RATIO = 0.45
 
 
 def _validate(paragraphs: list[dict], src_chars: int) -> str | None:
