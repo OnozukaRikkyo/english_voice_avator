@@ -87,6 +87,59 @@ Return a JSON array with a single element containing the full narration:
 - { "index": 1, "text": <the complete narration script in SSML: wrapped in <speak>...</speak> with <break> tags> }
 """
 
+# ── Continuation mode: one section of a longer script ─────────────────────────
+#
+# 長い transcript を塊に分けて渡すとき、各塊を独立に書かせると
+# それぞれが冒頭のフックと締めを持ってしまい、1本の台本として繋がらない。
+# 位置と直前の文脈を伝えて、続きとして書かせる。
+
+_POSITION = {
+    "first": (
+        "This is the OPENING section. Write the hook that starts the whole script. "
+        "Do NOT write a conclusion or sign-off — the script continues after this section."
+    ),
+    "middle": (
+        "This is a MIDDLE section of a continuous script. "
+        "Do NOT write an opening hook and do NOT write a conclusion or sign-off. "
+        "Begin as a natural continuation of what came before, and end mid-argument "
+        "so the next section can pick up from you."
+    ),
+    "last": (
+        "This is the FINAL section. Do NOT write a new opening hook. "
+        "Continue from what came before and close the whole script with a "
+        "forward-looking conclusion."
+    ),
+}
+
+_PROMPT_CONTINUATION = _ROLE + """
+
+# Position in the Script — READ THIS
+You are writing section {index} of {total} of ONE continuous narration script.
+{position}
+
+The source material below is only this section's portion of the transcript.
+Cover it fully; do not reach forward or backward into other sections.
+
+{context}
+
+# Output Format
+Return a JSON array with a single element containing this section's narration:
+- {{ "index": 1, "text": <this section in SSML: wrapped in <speak>...</speak> with <break> tags> }}
+"""
+
+_CONTEXT_BLOCK = """\
+# What Came Before
+The previous section ended with the passage below. Continue naturally from it.
+Do NOT repeat it, do NOT re-introduce the topic, do NOT summarise what was said.
+
+--- previous section, final passage ---
+{tail}
+--- end ---
+"""
+
+# 直前の台本から渡す文字数。多すぎると本文と混同され、少ないと繋がりが切れる。
+_CONTEXT_CHARS = 700
+
 # ── Limited mode: splitting instructions included ──────────────────────────────
 
 _PROMPT_LIMITED = _ROLE + """
@@ -162,6 +215,37 @@ def _build_prompt(max_chars: int, transcript: str) -> str:
     return _PROMPT_LIMITED.format(max_chars=max_chars) + "\n\n" + transcript
 
 
+def _split_transcript(text: str, size: int) -> list[str]:
+    """transcript を size 文字程度の塊に分ける。文の途中では切らない。
+
+    モデルは渡された transcript 全体を見て「どれだけ書くか」を決めるため、
+    長い transcript をまとめて渡すと圧縮する。実測（同じ38,410字の transcript）:
+
+        全文をまとめて渡す        → 60%
+        先頭7,000字だけを渡す     → 92%
+
+    塊ごとに独立して書かせれば、それぞれが濃く書かれる。
+    """
+    if size <= 0 or len(text) <= size:
+        return [text]
+
+    chunks, start = [], 0
+    while start < len(text):
+        end = min(start + size, len(text))
+        if end < len(text):
+            # 話題の変わり目を優先する。段落の切れ目が最も確実な手がかりで、
+            # 無ければ文末で切る。塊が偏らないよう後半だけを探索範囲にする。
+            lo = start + size // 2
+            for marks in (("\n\n",), ("\n",), (". ", "! ", "? ")):
+                found = max(text.rfind(m, lo, end) for m in marks)
+                if found > start:
+                    end = found + len(max(marks, key=lambda m: text.rfind(m, lo, end)))
+                    break
+        chunks.append(text[start:end].strip())
+        start = end
+    return [c for c in chunks if c]
+
+
 def rewrite_file(
     txt_path: Path,
     output_dir: Path,
@@ -170,6 +254,41 @@ def rewrite_file(
 ) -> list[Path]:
     text = txt_path.read_text(encoding="utf-8")
     print(f"  Total chars: {len(text)}  |  max_chars={'unlimited' if max_chars == -1 else max_chars}")
+
+    # transcript が長いと、モデルは全体を見て「どれだけ書くか」を決めて圧縮する。
+    # 塊に分けて独立に書かせ、結果を通し番号でつなぐ。
+    chunks = _split_transcript(text, max_chars)
+    if len(chunks) > 1:
+        print(f"  transcript を {len(chunks)} 分割して個別に台本化します"
+              f"（1塊あたり約 {len(text) // len(chunks):,}字）")
+        results: list[Path] = []
+        tail = ""            # 直前の塊の台本の末尾。続きとして書かせるために渡す
+        for i, chunk in enumerate(chunks, 1):
+            where = "first" if i == 1 else ("last" if i == len(chunks) else "middle")
+            print(f"  chunk {i}/{len(chunks)} ({len(chunk):,}字, {where})")
+            got = _rewrite_chunk(chunk, txt_path, output_dir, model,
+                                 start_index=len(results) + 1,
+                                 position=where, index=i, total=len(chunks), tail=tail)
+            results.extend(got)
+            if got:
+                tail = got[-1].read_text(encoding="utf-8")[-_CONTEXT_CHARS:]
+        total = sum(len(p.read_text(encoding="utf-8")) for p in results)
+        print(f"  合計 {total:,}字 = transcript の {total / len(text) * 100:.0f}%")
+        return results
+
+    return _rewrite_chunk(text, txt_path, output_dir, model, start_index=1)
+
+
+def _rewrite_chunk(
+    text: str, txt_path: Path, output_dir: Path, model: str, *, start_index: int,
+    position: str = "", index: int = 1, total: int = 1, tail: str = "",
+) -> list[Path]:
+    """transcript の1塊を台本にする。塊は分割せず1本で書かせる。
+
+    position が指定されていれば、1本の台本の一部として書かせる
+    （冒頭のフックと締めは最初と最後の塊だけに書かせ、間は続きとして書く）。
+    """
+    max_chars = -1  # 塊はすでに十分小さいので、この中では分割させない
 
     schema = {
         "type": "ARRAY",
@@ -183,7 +302,13 @@ def rewrite_file(
         },
     }
 
-    prompt = _build_prompt(max_chars, text)
+    if position:
+        prompt = _PROMPT_CONTINUATION.format(
+            index=index, total=total, position=_POSITION[position],
+            context=_CONTEXT_BLOCK.format(tail=tail) if tail else "",
+        ) + "\n\n" + text
+    else:
+        prompt = _build_prompt(max_chars, text)
     paragraphs: list[dict] = []
 
     # 出力が途中で切れることが実際に起きる（`<break time=` で終わる SSML が
@@ -201,8 +326,8 @@ def rewrite_file(
         print(f"    [retry {attempt}/{_MAX_ATTEMPTS - 1}] {problem}")
 
     results: list[Path] = []
-    for p in paragraphs:
-        idx = p["index"]
+    for offset, p in enumerate(paragraphs):
+        idx = start_index + offset          # 塊をまたいで連番になるようずらす
         part_text = p["text"].strip()
         out = output_dir / f"{txt_path.stem}_part{idx:02d}.txt"
         out.write_text(part_text, encoding="utf-8")
