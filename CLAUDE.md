@@ -125,7 +125,7 @@ Per-run override without editing config:
 
 | Constant | Value |
 |----------|-------|
-| `REWRITE_MAX_CHARS` | `-1` |
+| `REWRITE_MAX_CHARS` | `7000` |
 | `HEYGEN_RATIO` | `16:9` |
 
 ## Environment

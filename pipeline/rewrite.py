@@ -1,8 +1,13 @@
 """Stage transcript→narration: English transcript → narration script (SSML).
 
-REWRITE_MAX_CHARS in config.py controls segment size:
-  -1  → unlimited: full narration in one file, no split instructions in prompt
-  N   → each segment is at most N characters
+REWRITE_MAX_CHARS in config.py は **transcript を何文字ずつモデルに渡すか**。
+  N   → transcript を N 文字ずつに分け、塊ごとに台本化して連結する
+  -1  → 分割せず全文を1回で渡す（短い transcript 向け）
+
+モデルは渡された transcript 全体を見て「どれだけ書くか」を決めるため、
+長い transcript をまとめて渡すと圧縮する。塊に分けると各塊が濃く書かれる。
+塊は独立に書かせるのではなく、位置（最初/中間/最後）と直前の台本の末尾を
+渡して1本の台本として繋げる。
 """
 import json
 from pathlib import Path
