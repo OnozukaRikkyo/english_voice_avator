@@ -29,30 +29,12 @@ data/inbox/
 これだけです。以下がすべて自動で実行されます：
 
 1. `data/inbox/` をスキャンし、ファイル名からプロジェクトを自動作成
-2. パイプライン実行: `convert → transcribe → rewrite → concat_narration → translate`
+2. パイプライン実行: `convert → transcribe → rewrite → concat_narration → translate → heygen → concat_video`
 
 最終成果物は以下の2つです：
 
 - `data/{project}/narration/*_full.txt` — 英語ナレーション台本（SSML）
 - `data/{project}/translation/*_ja.txt` — その日本語訳
-
-## 保留中のステップ
-
-`heygen` / `concat_video` は現在**実行されません**。
-HeyGen の画面字幕を消す方法が未解決のため保留しています。
-
-調査は `./tool_investigate_caption.sh` で実行できます（実 API 呼び出しと
-動画フレームの画素解析で字幕バーの位置を測定し、
-`data/caption_investigation/report.md` に結果を出力します）。
-
-再開するには `run_pipeline.py` の `ALL_STEPS` にある該当行と、
-`main()` 内の対応する分岐のコメントを外してください。
-モジュール本体（`pipeline/heygen.py` / `tools/concat_video.py`）は残してあります。
-
-HeyGen の入力上限は5,000字です。台本パートはこれを超えることがあるため
-（実測 6,416〜9,483字）、送る前に `<break>` の位置で自動的に割ります。
-1.5秒（章の転換）を優先し、足りなければ1.0秒・0.5秒へ降ります。
-分けたときの動画は `_part01_01.mp4` のように枝番が付きます。
 
 ## トラブルシューティング
 

@@ -16,8 +16,8 @@ Japanese translation. Avatar-video generation exists but is currently suspended.
   transcript/         → [rewrite         ] → narration/parts/
   narration/parts/    → [concat_narration] → narration/   ← 出力1
   narration/_full.txt → [translate       ] → translation/   ← 出力2
-  narration/parts/    → [heygen          ] → video/parts/   （保留中・実行されない）
-  video/parts/        → [concat_video    ] → video/   （保留中・実行されない）
+  narration/parts/    → [heygen          ] → video/parts/
+  video/parts/        → [concat_video    ] → video/
 ```
 
 `narration/` は2つに分かれる: `translate` は `_full.txt` を、`heygen` は
@@ -69,8 +69,8 @@ enforced by `tools/check_design.py`.
 | `rewrite` | `transcript/` | `narration/` | `pipeline/rewrite.py` | active |
 | `concat_narration` | `narration/` | `narration/` | `tools/concat_narration.py` | active |
 | `translate` | `narration/` | `translation/` | `pipeline/translate.py` | active |
-| `heygen` | `narration/` | `video/` | `pipeline/heygen.py` | **suspended** |
-| `concat_video` | `video/` | `video/` | `tools/concat_video.py` | **suspended** |
+| `heygen` | `narration/` | `video/` | `pipeline/heygen.py` | active |
+| `concat_video` | `video/` | `video/` | `tools/concat_video.py` | active |
 
 ## How to Add a New Step
 

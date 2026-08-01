@@ -98,24 +98,12 @@ def _validate_mp4(path: Path) -> bool:
     return result.returncode == 0
 
 
-def _erase_caption_bar(path: Path) -> None:
-    """Paint over the bottom caption bar with the background color (#008000)."""
-    import subprocess
-    tmp = path.with_suffix(".tmp.mp4")
-    result = subprocess.run(
-        ["ffmpeg", "-y", "-i", str(path),
-         "-vf", "drawbox=x=0:y=ih*0.88:w=iw:h=ih*0.12:color=0x008000:t=fill",
-         "-c:a", "copy", str(tmp)],
-        capture_output=True,
-    )
-    if result.returncode != 0:
-        tmp.unlink(missing_ok=True)
-        raise RuntimeError(f"ffmpeg caption erase failed: {result.stderr.decode()[-300:]}")
-    tmp.replace(path)
-
-
 def download_raw(url: str, output_path: Path) -> Path:
-    """Download video as-is from HeyGen. No post-processing. Safe to import in tests."""
+    """Download the video as-is from HeyGen.
+
+    後処理は無い。`caption: False` で画面字幕が出ないことを実機で確認済み
+    （字幕を塗り潰す ffmpeg 処理を入れていたが、不要と分かったため削除した）。
+    """
     resp = requests.get(url, stream=True, timeout=300)
     resp.raise_for_status()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -130,15 +118,11 @@ def download_raw(url: str, output_path: Path) -> Path:
     return output_path
 
 
-def download_video(url: str, output_path: Path) -> Path:
-    return download_raw(url, output_path)
-
-
 def generate_video(text: str, output_path: Path, *, mp3_path: Path | None = None, title: str) -> Path:
     audio_asset_id = upload_audio(mp3_path) if mp3_path else None
     video_id = create_video(text, audio_asset_id=audio_asset_id, title=title)
     url = wait_for_video(video_id)
-    return download_video(url, output_path)
+    return download_raw(url, output_path)
 
 
 def run(project: str, *, force: bool = False) -> list[Path]:

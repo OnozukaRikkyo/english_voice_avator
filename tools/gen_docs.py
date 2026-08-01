@@ -24,12 +24,25 @@ from pipeline.config import (
 from run_pipeline import ALL_STEPS  # active steps only — suspended ones are commented out there
 
 
+# Steps that exist in STEP_IO but are not in ALL_STEPS are on hold.
+SUSPENDED_STEPS = [s for s in STEP_IO if s not in ALL_STEPS]
+
+
+def _hold(step: str) -> str:
+    """保留中の工程には印を付ける。解除したら自動で消える。"""
+    return "（保留中）" if step in SUSPENDED_STEPS else ""
+
+
+def _video_help() -> str:
+    if SUSPENDED_STEPS:
+        return "`heygen` / `concat_video` は保留中です（`video_guide.md`）"
+    return "`./run.sh --steps heygen,concat_video` で動画だけ作り直せます"
+
+
 def _provider(model: str) -> str:
     """モデル名がプロバイダを決める — pipeline/llm.py と同じ規約。"""
     return "OpenAI" if model.startswith("gpt-") else "Gemini"
 
-# Steps that exist in STEP_IO but are not in ALL_STEPS are on hold.
-SUSPENDED_STEPS = [s for s in STEP_IO if s not in ALL_STEPS]
 
 
 # ── Document generators ────────────────────────────────────────────────────────
@@ -162,8 +175,8 @@ def gen_user_guide() -> str:
         "step_rewrite.sh               ナレーション台本の生成\n"
         "step_concat_narration.sh      台本パートの結合\n"
         "step_translate.sh             日本語訳\n"
-        "step_heygen.sh                アバター動画の生成（保留中）\n"
-        "step_concat_video.sh          動画パートの結合（保留中）\n"
+        f"step_heygen.sh                アバター動画の生成{_hold('heygen')}\n"
+        f"step_concat_video.sh          動画パートの結合{_hold('concat_video')}\n"
         "\n"
         "tool_llm_check.sh             モデルとAPIキーの確認\n"
         "tool_heygen_consent.sh        HeyGen アバターの同意リンク取得\n"
@@ -185,7 +198,7 @@ def gen_user_guide() -> str:
         "| 途中まで生成済みで先に進まない | 各工程は出力があるとスキップします。作り直すなら `--force` |\n"
         "| 出力が古い内容のまま | 同上。`--force` を付けるか `tools/clean_data.py` で消す |\n"
         "| モデルを変えたい | `./run.sh --provider openai`、または `pipeline/config.py` を編集（`model_guide.md`） |\n"
-        "| 動画が作られない | `heygen` / `concat_video` は保留中です（`video_guide.md`） |\n"
+        f"| 動画が作られない | {_video_help()} |\n"
         "| 生成物が消えた | `data/` は git 管理外です。元音声から作り直せます |\n"
         "\n"
         "---\n"
