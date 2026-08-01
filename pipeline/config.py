@@ -147,6 +147,12 @@ REWRITE_MAX_CHARS = 7000
 # 超える音声は llm.py が時間で等分割して送る。
 OPENAI_AUDIO_MAX_BYTES = 25 * 1024 * 1024
 
+# HeyGen /v2/video/generate の入力テキスト上限（1〜5,000字）。動画長は最大30分。
+# rewrite が作る台本パートはこれを超えることがあるため（実測 6,416〜9,483字）、
+# heygen が送る前に pipeline/ssml.py で <break> の位置に合わせて割る。
+# 出典: https://developers.heygen.com/docs/usage-limits
+HEYGEN_MAX_CHARS = 5000
+
 HEYGEN_BASE_URL  = "https://api.heygen.com"
 HEYGEN_AVATAR_ID = os.environ.get("HEYGEN_AVATAR_ID", "")
 HEYGEN_VOICE_ID  = os.environ.get("HEYGEN_VOICE_ID", "")

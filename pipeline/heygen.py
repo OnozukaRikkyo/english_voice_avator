@@ -5,8 +5,9 @@ from pathlib import Path
 
 import requests
 
+from . import ssml
 from .config import (
-    HEYGEN_API_KEY, HEYGEN_BASE_URL,
+    HEYGEN_API_KEY, HEYGEN_BASE_URL, HEYGEN_MAX_CHARS,
     HEYGEN_AVATAR_ID, HEYGEN_VOICE_ID, HEYGEN_RATIO,
     stage_dir, parts_dir, all_projects, STEP_IO,
 )
@@ -160,25 +161,38 @@ def run(project: str, *, force: bool = False) -> list[Path]:
 
     generated = 0
     for txt in sorted(src_dir.glob("*.txt")):
-        out = dst_dir / (txt.stem + ".mp4")
-        if out.exists() and not force:
-            if not _validate_mp4(out):
-                print(f"  [invalid] {out.name} — moov atom not found, regenerating")
-                out.unlink()
-            else:
-                print(f"  [skip] {out.name}")
-                results.append(out)
-                continue
-        if out.exists() and force:
-            out.unlink()
         text = txt.read_text(encoding="utf-8").strip()
-        print(f"  Generating: {txt.name} ({len(text)} chars)")
-        generate_video(text, out, title=txt.stem)
-        results.append(out)
-        generated += 1
-        if debug and generated >= 1:
-            print("  [debug] stopping after 1 generated part")
-            break
+
+        # HeyGen の入力上限は 5,000 字。台本パートはこれを超えることがあるので、
+        # <break> の位置（話題の切れ目）で割ってから送る。
+        pieces = ssml.split(text, HEYGEN_MAX_CHARS)
+        if len(pieces) > 1:
+            print(f"  {txt.name} は {len(text):,}字 > 上限 {HEYGEN_MAX_CHARS:,}字 → "
+                  f"{len(pieces)} 本に分けて生成します")
+
+        for n, piece in enumerate(pieces, 1):
+            # 1本のときは従来どおりの名前、分けたときだけ枝番を付ける
+            stem = txt.stem if len(pieces) == 1 else f"{txt.stem}_{n:02d}"
+            out = dst_dir / (stem + ".mp4")
+
+            if out.exists() and not force:
+                if not _validate_mp4(out):
+                    print(f"  [invalid] {out.name} — moov atom not found, regenerating")
+                    out.unlink()
+                else:
+                    print(f"  [skip] {out.name}")
+                    results.append(out)
+                    continue
+            if out.exists() and force:
+                out.unlink()
+
+            print(f"  Generating: {out.stem} ({len(piece)} chars)")
+            generate_video(piece, out, title=out.stem)
+            results.append(out)
+            generated += 1
+            if debug and generated >= 1:
+                print("  [debug] stopping after 1 generated part")
+                return results
 
     return results
 
