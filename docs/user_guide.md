@@ -87,6 +87,7 @@ cp your_doc.docx data/senario_jp/   # 1. 置く（.docx / .pdf）
 ./run.sh --force                       # 既存の出力を無視して作り直す
 ./run.sh --provider openai             # 全工程を ChatGPT に切り替える
 ./run.sh --project スラッグ名          # 特定プロジェクトだけ処理する
+./run_again.sh                         # 既存を上書きして作り直す（引数不要）
 python tools/clean_data.py             # 生成物を全部消してやり直す
 ./tool_test.sh                         # 自動テストを流す（課金なし）
 ```
@@ -110,6 +111,7 @@ push すると GitHub Actions でも走ります。どちらも API を呼ばな
 ```
 run.sh                        inbox の全件を処理する（標準入口）
 run_audio.sh <file>           音声1本を指定して処理する
+run_again.sh                  既存プロジェクトを上書きして作り直す
 gen_notebooklm_prompt.sh      資料 → NotebookLM プロンプト
 
 step_convert.sh               音声形式の変換
