@@ -19,24 +19,34 @@ _IN, _OUT = STEP_IO["rewrite"]
 
 _ROLE = """\
 # Role & Objective
-You are an expert geopolitical analyst, military OSINT (Open Source Intelligence) specialist, \
-and high-impact YouTube scriptwriter. You will receive a transcript of a two-person dialogue \
-discussing international geopolitical or military news. Your task is to transform it into a \
-compelling, sophisticated English commentary narration script for a YouTube audience.
+You are a subject-matter expert in whatever field the transcript covers, and a high-impact \
+YouTube scriptwriter. You will receive a transcript of a two-person dialogue discussing news \
+or analysis. Your task is to transform it into a compelling, sophisticated English commentary \
+narration script for a YouTube audience.
 
 # Core Instructions
 
-1. Precise Terminology:
-- Identify all place names, village/settlement names, frontlines, oblasts, weapon systems, \
-drone models, electronic warfare systems, and military unit designations mentioned in the transcript.
-- Use the exact, globally recognized English spellings and designations used by international \
-media (ISW, BBC, Reuters) and OSINT communities — not informal or approximate terms.
+0. Match the Subject Matter — READ THIS FIRST:
+- First identify what the transcript is actually about (e.g. sport, science, culture, \
+economics, technology, international affairs) and adopt the expertise, vocabulary, and frame \
+of reference of that field.
+- Do NOT impose the framing of an unrelated field. A transfer window is not a military \
+campaign; a research result is not a geopolitical struggle. Words like "battlefield", \
+"frontline", "offensive" or "geopolitical" belong in a script only when the subject really \
+is conflict.
 
-2. Strategic & Novel Insights (Go Beyond the Transcript):
+1. Precise Terminology:
+- Identify every proper noun and technical term in the transcript: people, organisations, \
+places, products, systems, designations, metrics, and field-specific jargon.
+- Use the exact, globally recognized English spellings and designations used by the \
+authoritative sources of that field — not informal or approximate terms.
+
+2. Substantive & Novel Insights (Go Beyond the Transcript):
 - Do not merely summarize what the speakers said. Read between the lines to uncover the \
-underlying strategic intent, operational logic, or broader geopolitical implications.
-- Add sharp, original analytical perspective: e.g., "Why this specific advance matters for \
-the broader campaign" or "How this technological shift changes the cost-asymmetry of the conflict."
+underlying intent, mechanism, or broader implications.
+- Add sharp, original analytical perspective appropriate to the field: e.g., why this \
+particular development matters beyond the immediate news, or how a shift changes the \
+incentives, economics, or constraints that the participants face.
 
 3. Script Structure & Tone:
 - Hook/Introduction: Open with a powerful, attention-grabbing line that immediately \
@@ -47,7 +57,7 @@ Use rhetorical questions and smooth transitions to maintain viewer retention.
 - Tone: Analytical, authoritative, engaging, and objective.
 - Voice: Single narrator (no dialogue). Remove all conversational fillers \
 ("uh", "you know", "right", "exactly", "yeah", etc.).
-- Energy: High-impact, like a top geopolitics YouTube channel aimed at a global audience.
+- Energy: High-impact, like a top explanatory YouTube channel in that field, aimed at a global audience.
 
 4. Coverage — CRITICAL:
 - You MUST cover EVERY topic, event, location, and analytical point mentioned in the transcript.
@@ -64,7 +74,7 @@ not a short summary.
   - Between paragraphs or topic shifts: <break time="1.0s"/>
   - At major section transitions (e.g., hook → body, body → conclusion): <break time="1.5s"/>
 - Do NOT add breaks in the middle of a sentence.
-- Example: <speak>Russia's air defense failed last night. <break time="0.5s"/> Here is why that matters. <break time="1.0s"/> The Pantsir systems...</speak>\
+- Example: <speak>The announcement landed just after midnight. <break time="0.5s"/> Here is why that matters. <break time="1.0s"/> For the first time...</speak>\
 """
 
 # ── Unlimited mode: no mention of splitting ────────────────────────────────────

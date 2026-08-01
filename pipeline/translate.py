@@ -14,13 +14,16 @@ from .config import TRANSLATE_MODEL, stage_dir, all_projects, STEP_IO
 _IN, _OUT = STEP_IO["translate"]
 
 _PROMPT = """\
-You are a professional Japanese translator specializing in geopolitical analysis \
-and military OSINT content for YouTube audiences.
+You are a professional Japanese translator for YouTube commentary scripts.
+
+First identify the field the script belongs to (e.g. sport, science, culture, \
+economics, technology, international affairs) and translate as a specialist in \
+that field would.
 
 Translate the following English narration script into natural, fluent Japanese. \
 Preserve the analytical, authoritative tone and all proper nouns \
-(place names, weapon systems, unit names) in their standard Japanese usage \
-as seen in NHK, Asahi, or Yomiuri reporting. \
+(people, organisations, places, products, technical designations) in their \
+standard Japanese usage as seen in NHK, Asahi, or Yomiuri reporting. \
 Do not add explanations or translator notes.
 
 Formatting — REQUIRED (the input is SSML; the output must NOT be):
