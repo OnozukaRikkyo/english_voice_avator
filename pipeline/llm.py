@@ -18,6 +18,7 @@ utimes/code/llm.py と同じ規約なので、両プロジェクトで判断が�
 制約付きデコーディングに使い、OpenAI 経路だけ strict な JSON スキーマに変換する。
 """
 import math
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -31,6 +32,17 @@ from .config import OPENAI_AUDIO_MAX_BYTES
 # 初版 3cc7377 から b217aec まで使われていたプロンプトをそのまま復元したもの。
 # （OpenAI の gpt-transcribe は元から逐語なので、Gemini 経路だけ指示が要る）
 _PROMPT_TRANSCRIBE = "This audio is in English. Please transcribe it in English. Output the text only."
+
+# 固有名詞のヒント。gpt-transcribe の prompt パラメータは
+# 「製品名・専門用語・略語を正しく書き起こす」ための用途と公式に説明されている。
+# 実測: 用語集を渡すと "Kostyantynivka" が用語集どおりの
+# "Kostiantynivka" に矯正された（渡さないと綴りが揺れる）。
+_VOCAB_TEMPLATE = "\n\nThe audio may contain these names and terms: {terms}"
+
+
+def _vocab_hint(vocabulary: str) -> str:
+    """用語ヒントの本文。空なら空文字。"""
+    return _VOCAB_TEMPLATE.format(terms=vocabulary.strip()) if vocabulary.strip() else ""
 
 
 def is_openai(model: str) -> bool:
@@ -188,20 +200,26 @@ def generate_json(model: str, prompt: str, schema: dict, schema_name: str = "res
 
 # ── 文字起こし ────────────────────────────────────────────────────────────────
 
-def transcribe(model: str, mp3: Path) -> str:
+def transcribe(model: str, mp3: Path, *, vocabulary: str = "") -> str:
     """英語音声を逐語で書き起こして返す。
 
     入力は英語である前提なので、変換は一切挟まない（1音声につきAPI呼び出しは1回）。
     OpenAI の gpt-transcribe は元から話された言語のまま逐語で返すため、
     そのまま使える。
+
+    Args:
+        vocabulary: 音声に出てくる固有名詞・専門用語のヒント。
+            地名や兵器名の綴りを正すのに効く（実測で
+            "Kostyantynivka" → "Kostiantynivka" に矯正された）。
     """
     if is_openai(model):
-        return _transcribe_openai(model, mp3)
-    return _transcribe_gemini(model, mp3)
+        return _transcribe_openai(model, mp3, vocabulary=vocabulary)
+    return _transcribe_gemini(model, mp3, vocabulary=vocabulary)
 
 
-def _transcribe_gemini(model: str, mp3: Path) -> str:
+def _transcribe_gemini(model: str, mp3: Path, *, vocabulary: str = "") -> str:
     """Gemini Files API にアップロードして英語で書き起こす。"""
+    prompt = _PROMPT_TRANSCRIBE + (_vocab_hint(vocabulary) if vocabulary else "")
     import io
     import time
 
@@ -213,7 +231,7 @@ def _transcribe_gemini(model: str, mp3: Path) -> str:
         while uploaded.state.name == "PROCESSING":
             time.sleep(5)
             uploaded = client.files.get(name=uploaded.name)
-        resp = client.models.generate_content(model=model, contents=[uploaded, _PROMPT_TRANSCRIBE])
+        resp = client.models.generate_content(model=model, contents=[uploaded, prompt])
         client.files.delete(name=uploaded.name)
     except Exception as e:
         check_api_error(e)
@@ -221,10 +239,10 @@ def _transcribe_gemini(model: str, mp3: Path) -> str:
     return (resp.text or "").strip()
 
 
-def _transcribe_openai(model: str, mp3: Path) -> str:
+def _transcribe_openai(model: str, mp3: Path, *, vocabulary: str = "") -> str:
     """OpenAI /v1/audio/transcriptions で書き起こす（話された言語のまま）。
 
-    アップロード上限は25MB。超える場合は時間で等分割して個別に投げ、連結する。
+    アップロード上限は25MB。超える場合は無音に寄せて分割し、個別に投げて連結する。
     """
     chunks = _split_for_upload(mp3)
     # ffmpeg が何も吐かなかった場合、以降は静かに空文字列を返してしまう
@@ -248,9 +266,10 @@ def _transcribe_openai(model: str, mp3: Path) -> str:
         for i, chunk in enumerate(chunks, 1):
             if len(chunks) > 1:
                 print(f"    chunk {i}/{len(chunks)} ({chunk.stat().st_size / 1024 / 1024:.1f} MB)")
+            extra = {"prompt": _vocab_hint(vocabulary).strip()} if vocabulary else {}
             with open(chunk, "rb") as f:
                 resp = client.audio.transcriptions.create(
-                    model=model, file=f, response_format="text",
+                    model=model, file=f, response_format="text", **extra,
                 )
             texts.append(str(resp).strip())
     except Exception as e:
@@ -262,9 +281,44 @@ def _transcribe_openai(model: str, mp3: Path) -> str:
     return "\n".join(texts)
 
 
-def _split_for_upload(mp3: Path) -> list[Path]:
-    """25MB を超える音声を、上限に収まる個数へ時間で等分割する。
+def _silence_midpoints(mp3: Path, noise: str = "-30dB", min_dur: float = 0.4) -> list[float]:
+    """無音区間の中心時刻（秒）を返す。検出できなければ空リスト。
 
+    ffmpeg の silencedetect は stderr に
+      silence_start: 123.4 / silence_end: 124.1
+    を出す。その中間を切れ目の候補とする。
+    """
+    r = subprocess.run(
+        ["ffmpeg", "-i", str(mp3), "-af", f"silencedetect=noise={noise}:d={min_dur}",
+         "-f", "null", "-"],
+        capture_output=True,
+    )
+    log = r.stderr.decode("utf-8", "replace")
+    starts = [float(x) for x in re.findall(r"silence_start:\s*([\d.]+)", log)]
+    ends = [float(x) for x in re.findall(r"silence_end:\s*([\d.]+)", log)]
+    return [(s + e) / 2 for s, e in zip(starts, ends)]
+
+
+def _split_times(duration: float, n: int, silences: list[float]) -> list[float]:
+    """n 等分の目標時刻を、近くの無音へ寄せた切れ目を返す。
+
+    文の途中で切ると、その文が両側で欠けたり重複したりする。
+    目標の前後 tol 秒以内に無音があればそこへ寄せる。無ければ目標のまま。
+    """
+    seg = duration / n
+    tol = min(seg * 0.15, 30.0)   # 寄せすぎてチャンクが偏らない範囲
+    times = []
+    for i in range(1, n):
+        target = seg * i
+        near = [s for s in silences if abs(s - target) <= tol]
+        times.append(min(near, key=lambda s: abs(s - target)) if near else target)
+    return times
+
+
+def _split_for_upload(mp3: Path) -> list[Path]:
+    """25MB を超える音声を、上限に収まる個数へ分割する。
+
+    切れ目はできるだけ無音（＝文の切れ目）に合わせる。
     分割が不要なら元ファイルをそのまま1件返す。
     """
     size = mp3.stat().st_size
@@ -273,11 +327,17 @@ def _split_for_upload(mp3: Path) -> list[Path]:
 
     duration = _duration_seconds(mp3)
     n = math.ceil(size / (OPENAI_AUDIO_MAX_BYTES * 0.9))  # 1割の余裕を見る
-    seg = math.ceil(duration / n)
+
+    silences = _silence_midpoints(mp3)
+    times = _split_times(duration, n, silences)
+    snapped = sum(1 for t in times if any(abs(t - s) < 0.01 for s in silences))
+    print(f"    切れ目 {len(times)}箇所中 {snapped}箇所を無音に合わせました"
+          f"（無音候補 {len(silences)}件）")
 
     tmpdir = Path(tempfile.mkdtemp(prefix="transcribe_", dir=mp3.parent))
     subprocess.run(
-        ["ffmpeg", "-y", "-i", str(mp3), "-f", "segment", "-segment_time", str(seg),
+        ["ffmpeg", "-y", "-i", str(mp3), "-f", "segment",
+         "-segment_times", ",".join(f"{t:.3f}" for t in times),
          "-c", "copy", str(tmpdir / "chunk%03d.mp3")],
         check=True, capture_output=True,
     )

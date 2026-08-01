@@ -8,7 +8,7 @@
 import os
 from pathlib import Path
 
-from . import artifact, llm
+from . import artifact, llm, vocabulary
 from .config import TRANSCRIBE_MODEL, stage_dir, all_projects, STEP_IO
 
 _IN, _OUT = STEP_IO["transcribe"]
@@ -25,6 +25,8 @@ def run(
         model: config.TRANSCRIBE_MODEL を上書きする（gpt-* なら OpenAI 経路）。
     """
     active_model = model or TRANSCRIBE_MODEL
+    # NotebookLM プロンプトの用語集を綴りのヒントとして渡す（あれば）
+    vocab = vocabulary.collect()
     src_dir = stage_dir(project, _IN)
     dst_dir = stage_dir(project, _OUT)
     dst_dir.mkdir(parents=True, exist_ok=True)
@@ -40,7 +42,9 @@ def run(
             out.unlink()
 
         print(f"  Transcribing: {mp3.name}  [{active_model} / {llm.provider(active_model)}]")
-        text = llm.transcribe(active_model, mp3)
+        if vocab:
+            print(f"    用語ヒント: {len(vocab.split(', '))}語（{len(vocab)}字）")
+        text = llm.transcribe(active_model, mp3, vocabulary=vocab)
         artifact.write_checked(out, text, min_chars=100, label=f"transcribe/{mp3.name}")
         print(f"  → {out.name} ({len(text)} chars)")
         results.append(out)

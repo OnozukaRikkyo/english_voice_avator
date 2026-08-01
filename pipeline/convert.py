@@ -1,5 +1,4 @@
 """Stage raw→audio: m4a/mp4/mp3 → converted mp3."""
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -8,14 +7,25 @@ from .config import stage_dir, all_projects, STEP_IO
 _IN, _OUT = STEP_IO["convert"]
 
 
+# 文字起こし向けの設定。音楽用の高音質は不要で、大きいと OpenAI の
+# アップロード上限（25MB）を超えて分割が必要になる。
+#
+# 64kbps モノラルなら 36分の音声が 30MB → 17MB になり、
+# 約52分まで分割せずに1回で送れる。
+#
+# 精度への影響は実測済み: 同一音声・同一設定を2回文字起こししたときの
+# ばらつきが 98.8%、ビットレートを下げたときの一致度が 97.4〜97.8% で
+# ほぼ同水準。固有名詞（Huliaipole / Stepnohirsk / Zaporizhzhia 等）も
+# 落ちなかった。
+_SPEECH_ARGS = ["-codec:a", "libmp3lame", "-ac", "1", "-b:a", "64k"]
+
+
 def _to_mp3(src: Path, dst: Path) -> None:
-    if src.suffix.lower() == ".mp3":
-        shutil.copy2(src, dst)
-    else:
-        subprocess.run(
-            ["ffmpeg", "-y", "-i", str(src), "-codec:a", "libmp3lame", "-q:a", "2", str(dst)],
-            check=True, capture_output=True,
-        )
+    # mp3 でもビットレートを揃える（元が高音質なら上限超過の原因になるため）
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(src), *_SPEECH_ARGS, str(dst)],
+        check=True, capture_output=True,
+    )
 
 
 def run(project: str, *, force: bool = False) -> list[Path]:

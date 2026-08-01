@@ -94,9 +94,6 @@ python tools/clean_data.py             # 生成物を全部消してやり直す
 テストはファイル編集のたびに自動実行され（`.claude/settings.json` のフック）、
 push すると GitHub Actions でも走ります。どちらも API を呼ばないため課金されません。
 
-```bash
-```
-
 ---
 
 ## スクリプト一覧
