@@ -128,3 +128,71 @@ def test_collect_is_empty_when_nothing_is_available(monkeypatch, tmp_path):
     monkeypatch.setattr(vocabulary, "PROMPTS_DIR", tmp_path / "none")
     monkeypatch.setattr(vocabulary, "MANUAL_FILE", tmp_path / "none.txt")
     assert vocabulary.collect() == ""
+
+
+# ── 用語ファイルの生成と読み込み ────────────────────────────────────────────
+
+def test_vocab_path_sits_next_to_the_prompt():
+    from pathlib import Path
+    from pipeline.vocabulary import vocab_path
+    p = Path("/x/prompts/doc_prompt.txt")
+    assert vocab_path(p) == Path("/x/prompts/doc_vocabulary.txt")
+
+
+def test_write_for_prompt_creates_a_one_term_per_line_file(tmp_path):
+    from pipeline.vocabulary import vocab_path, write_for_prompt
+    pf = tmp_path / "doc_prompt.txt"
+    pf.write_text(PROMPT, encoding="utf-8")
+    terms = write_for_prompt(pf)
+    body = vocab_path(pf).read_text(encoding="utf-8")
+    assert "Huliaipole" in terms
+    assert "\nHuliaipole\n" in body
+
+
+def test_the_generated_file_explains_itself(tmp_path):
+    """人が開いて直せるよう、先頭に使い方を書く。"""
+    from pipeline.vocabulary import vocab_path, write_for_prompt
+    pf = tmp_path / "doc_prompt.txt"
+    pf.write_text(PROMPT, encoding="utf-8")
+    write_for_prompt(pf)
+    assert vocab_path(pf).read_text(encoding="utf-8").startswith("#")
+
+
+def test_no_file_is_written_without_a_vocabulary_section(tmp_path):
+    from pipeline.vocabulary import vocab_path, write_for_prompt
+    pf = tmp_path / "doc_prompt.txt"
+    pf.write_text("A prompt with no vocabulary guide.", encoding="utf-8")
+    assert write_for_prompt(pf) == []
+    assert not vocab_path(pf).exists()
+
+
+def test_comments_and_blank_lines_are_ignored(tmp_path):
+    from pipeline.vocabulary import _read_term_file
+    f = tmp_path / "v.txt"
+    f.write_text("# a comment\n\nHuliaipole\n  \n# another\nStepnohirsk\n", encoding="utf-8")
+    assert _read_term_file(f) == ["Huliaipole", "Stepnohirsk"]
+
+
+def test_a_saved_file_takes_precedence_over_the_prompt(monkeypatch, tmp_path):
+    """人が直した内容を、プロンプトからの再抽出で上書きしない。"""
+    from pipeline import vocabulary
+    prompts = tmp_path / "prompts"
+    prompts.mkdir()
+    (prompts / "doc_prompt.txt").write_text(PROMPT, encoding="utf-8")
+    (prompts / "doc_vocabulary.txt").write_text("# fixed by hand\nCorrectedTerm\n", encoding="utf-8")
+    monkeypatch.setattr(vocabulary, "PROMPTS_DIR", prompts)
+    monkeypatch.setattr(vocabulary, "MANUAL_FILE", tmp_path / "none.txt")
+    got = vocabulary.collect()
+    assert "CorrectedTerm" in got
+    assert "Huliaipole" not in got
+
+
+def test_the_prompt_is_used_when_no_file_has_been_saved(monkeypatch, tmp_path):
+    """用語ファイルが無い既存プロンプトでも動く（後方互換）。"""
+    from pipeline import vocabulary
+    prompts = tmp_path / "prompts"
+    prompts.mkdir()
+    (prompts / "doc_prompt.txt").write_text(PROMPT, encoding="utf-8")
+    monkeypatch.setattr(vocabulary, "PROMPTS_DIR", prompts)
+    monkeypatch.setattr(vocabulary, "MANUAL_FILE", tmp_path / "none.txt")
+    assert "Huliaipole" in vocabulary.collect()

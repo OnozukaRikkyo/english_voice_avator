@@ -19,7 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-from pipeline import llm
+from pipeline import llm, vocabulary
 from pipeline.config import NOTEBOOKLM_PROMPT_MODEL, PRESETS, resolve_models
 
 SENARIO_DIR = ROOT / "data" / "senario_jp"
@@ -117,7 +117,22 @@ def main() -> None:
         "--model-notebooklm", default=None, dest="model_notebooklm", metavar="MODEL",
         help=f"使用モデル（gpt-* なら OpenAI、それ以外は Gemini。既定: {NOTEBOOKLM_PROMPT_MODEL}）",
     )
+    parser.add_argument(
+        "--vocabulary-only", action="store_true",
+        help="既存のプロンプトから用語ファイルだけを作り直す（APIを呼ばない）",
+    )
     args = parser.parse_args()
+
+    if args.vocabulary_only:
+        prompts = sorted(OUTPUT_DIR.glob("*_prompt.txt")) if OUTPUT_DIR.is_dir() else []
+        if not prompts:
+            print(f"プロンプトがありません: {OUTPUT_DIR.relative_to(ROOT)}", file=sys.stderr)
+            sys.exit(1)
+        for pf in prompts:
+            terms = vocabulary.write_for_prompt(pf)
+            status = f"{len(terms)}語" if terms else "★用語集セクションなし"
+            print(f"  {vocabulary.vocab_path(pf).relative_to(ROOT)}  {status}")
+        return
 
     try:
         model = resolve_models(args.provider, notebooklm=args.model_notebooklm)["notebooklm"]
@@ -151,6 +166,17 @@ def main() -> None:
 
         out.write_text(prompt, encoding="utf-8")
         print(f"  → {out.relative_to(ROOT)} ({len(prompt)} chars)")
+
+        # 用語集を文字起こし用に切り出して保存する。
+        # transcribe が読み込んで gpt-transcribe の prompt に渡し、
+        # 固有名詞の綴りを安定させる。ファイルに出すのは中身を見て直せるようにするため
+        # （辞書が誤っていると、その誤りをそのまま押し付けることになる）。
+        terms = vocabulary.write_for_prompt(out)
+        if terms:
+            print(f"  → {vocabulary.vocab_path(out).relative_to(ROOT)} "
+                  f"（{len(terms)}語 / 文字起こしの綴りヒント）")
+        else:
+            print("  用語集セクションが見つかりませんでした（綴りヒントなし）", file=sys.stderr)
 
     if failed:
         sys.exit(1)

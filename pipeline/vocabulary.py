@@ -86,6 +86,43 @@ def _terms_from_prompt(text: str) -> list[str]:
     return out
 
 
+def vocab_path(prompt_file: Path) -> Path:
+    """プロンプトに対応する用語ファイルのパス。
+
+    …_prompt.txt の隣に …_vocabulary.txt を置く。
+    """
+    return prompt_file.with_name(prompt_file.name.replace("_prompt.txt", "_vocabulary.txt"))
+
+
+def write_for_prompt(prompt_file: Path) -> list[str]:
+    """プロンプトから用語を切り出してファイルに保存し、その語を返す。
+
+    NotebookLM プロンプトの生成時に呼ばれる。1行1語で書くので、
+    誤りがあれば人が直せる（実測で Vyorstka / Verstka の優先順が
+    実態と逆になっていた例がある）。
+    """
+    terms = _terms_from_prompt(prompt_file.read_text(encoding="utf-8"))
+    if not terms:
+        return []
+    out = vocab_path(prompt_file)
+    out.write_text(
+        "# 文字起こしに渡す綴りのヒント（1行1語）。\n"
+        f"# {prompt_file.name} の用語集から自動抽出。誤りがあれば直してください。\n"
+        "# 行を消せばその語は渡されません。\n"
+        + "\n".join(terms) + "\n",
+        encoding="utf-8",
+    )
+    return terms
+
+
+def _read_term_file(path: Path) -> list[str]:
+    """1行1語のファイルを読む。# で始まる行と空行は無視する。"""
+    return [
+        ln.strip() for ln in path.read_text(encoding="utf-8").splitlines()
+        if ln.strip() and not ln.lstrip().startswith("#")
+    ]
+
+
 def collect(max_chars: int = MAX_CHARS) -> str:
     """使える用語をカンマ区切りで返す。無ければ空文字。
 
@@ -96,11 +133,15 @@ def collect(max_chars: int = MAX_CHARS) -> str:
     terms: list[str] = []
 
     if MANUAL_FILE.exists():
-        terms += [ln.strip() for ln in MANUAL_FILE.read_text(encoding="utf-8").splitlines()]
+        terms += _read_term_file(MANUAL_FILE)
 
     if PROMPTS_DIR.is_dir():
         for p in sorted(PROMPTS_DIR.glob("*_prompt.txt")):
-            terms += _terms_from_prompt(p.read_text(encoding="utf-8"))
+            saved = vocab_path(p)
+            # 保存済みの用語ファイルを優先する。人が手で直した内容を
+            # プロンプトからの再抽出で上書きしないため。
+            terms += _read_term_file(saved) if saved.exists() else _terms_from_prompt(
+                p.read_text(encoding="utf-8"))
 
     seen: set[str] = set()
     uniq: list[str] = []

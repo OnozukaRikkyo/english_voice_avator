@@ -26,7 +26,26 @@ data/senario_jp/
 
 ```
 data/senario_jp/prompts/
-  your_document_prompt.txt   ← これをそのまま貼り付ける
+  your_document_prompt.txt       ← これをそのまま貼り付ける
+  your_document_vocabulary.txt   ← 文字起こし用の綴りヒント（自動生成）
+```
+
+## 文字起こしとの連携
+
+プロンプトを生成すると、その用語集から**文字起こし用の綴りヒント**も
+同時に作られます。以降 `./run.sh` で音声を処理すると自動で読み込まれ、
+固有名詞の綴りが安定します（実測で `Kostyantynivka` → `Kostiantynivka`）。
+
+`_vocabulary.txt` は1行1語のただのテキストです。**辞書が誤っていれば
+その誤りを押し付けることになる**ので、気になる語は直してください。
+行を消せばその語は渡されません。手で直した内容は再抽出で上書きされません。
+
+資料と関係なく足したい語は `data/senario_jp/vocabulary.txt` に書きます。
+
+既存のプロンプトから作り直すこともできます（APIを呼ばないので無料）。
+
+```bash
+./gen_notebooklm_prompt.sh --vocabulary-only
 ```
 
 ## 生成されるプロンプトの中身
