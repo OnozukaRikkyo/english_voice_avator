@@ -12,8 +12,6 @@ Steps (default: all):
   rewrite          transcript/      → narration/parts/
   concat_narration narration/parts/ → narration/*_full.txt
   translate        narration/       → translation/
-
-Suspended (on hold — HeyGen caption issue unresolved):
   heygen           narration/parts/ → video/parts/
   concat_video     video/parts/     → video/*.mp4
 

@@ -20,7 +20,9 @@
 ```
 GEMINI_API_KEY=...
 OPENAI_API_KEY=...
-HEYGEN_API_KEY=...        # 動画生成を再開するときのみ
+HEYGEN_API_KEY=...        # 動画生成に必要
+HEYGEN_AVATAR_ID=...      # 使うアバター
+HEYGEN_VOICE_ID=...       # 使う音声
 ```
 
 ### 2. 設定を確認する
@@ -34,26 +36,27 @@ HEYGEN_API_KEY=...        # 動画生成を再開するときのみ
 
 ---
 
-## 使い方A: 音声 → 台本
-
-```bash
-./run_audio.sh path/to/audio.m4a     # 音声を指定して1本処理する
-```
-
-何本も続けて処理する場合はこれが一番手軽です。処理後は inbox から
-自動で片付けられるので、次のファイルを指定してまた実行するだけです。
-同名プロジェクトが既にある場合は上書きせずエラーで止まります。
-
-inbox に置いてから実行する従来の方法も使えます。
+## 使い方A: 音声 → 台本・動画
 
 ```bash
 cp your_audio.m4a data/inbox/    # 1. 置く
 ./run.sh                          # 2. 実行する
 ```
 
+**`./run.sh` は引数なしで最初から最後まで通します。**
 `convert → transcribe → rewrite → concat_narration → translate → heygen → concat_video` が順に動きます。
+プロジェクト名は音声ファイル名から自動で付きます。
 入力音声は英語である前提です。
 
+
+音声を1本だけ指定して処理することもできます。
+
+```bash
+./run_audio.sh path/to/audio.m4a
+```
+
+処理後は inbox から自動で片付けられるので、次のファイルを指定してまた
+実行するだけです。同名プロジェクトが既にある場合は上書きせず止まります。
 
 できあがるもの:
 
@@ -61,9 +64,11 @@ cp your_audio.m4a data/inbox/    # 1. 置く
 data/{プロジェクト名}/
   narration/*_full.txt     ← 英語ナレーション台本（SSML）
   translation/*_ja.txt     ← その日本語訳
+  video/*.mp4              ← 結合済みのアバター動画
 ```
 
-プロジェクト名は音声ファイル名から自動で付きます。
+各工程は出力があるとスキップします。途中で止まっても `./run.sh` を
+もう一度実行すれば続きから進みます。作り直すときは `--force` が要ります。
 
 ---
 
@@ -123,9 +128,9 @@ step_concat_video.sh          動画パートの結合
 
 tool_llm_check.sh             モデルとAPIキーの確認
 tool_heygen_consent.sh        HeyGen アバターの同意リンク取得
-tool_heygen_test.sh           HeyGen のテスト動画を1本生成
-tool_test_caption.sh          HeyGen 字幕の挙動テスト
-tool_investigate_caption.sh   HeyGen 字幕の実証調査
+tool_heygen_test.sh           設定中のアバターと音声を短い文で1本確認
+tool_test_caption.sh          HeyGen 字幕の挙動テスト（調査済み・記録用）
+tool_investigate_caption.sh   HeyGen 字幕の実証調査（調査済み・記録用）
 tool_test.sh                  自動テスト（APIを呼ばない）
 ```
 

@@ -5,8 +5,8 @@
 
 ## Overview
 
-Turns an English audio file into an English narration script (SSML) and its
-Japanese translation. Avatar-video generation exists but is currently suspended.
+Turns an English audio file into an English narration script (SSML), its
+Japanese translation, and a HeyGen avatar video.
 
 ## Pipeline Flow
 
@@ -40,7 +40,7 @@ data/
       parts/                  _part*.txt — split segments
     translation/
       {stem}_ja.txt         ← output 2: Japanese translation
-    video/                  suspended
+    video/                  ← output 3: avatar video (mp4)
       parts/
 ```
 
