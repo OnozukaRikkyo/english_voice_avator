@@ -26,6 +26,14 @@ from pathlib import Path
 from . import api_status, gemini_client, openai_client
 from .config import OPENAI_AUDIO_MAX_BYTES
 
+
+class IncompleteResponse(RuntimeError):
+    """モデルが最後まで出力しなかった（出力上限・安全フィルタなどで打ち切られた）。
+
+    途中で切れた応答は JSON として読めない。呼び出し側が「作り直せば直るかもしれない
+    失敗」として他のエラーと区別できるよう、専用の型にしている。
+    """
+
 # ── 文字起こし用プロンプト ────────────────────────────────────────────────────
 
 # 入力音声は英語である前提。書き起こしはそのまま逐語で行い、変換は挟まない。
@@ -145,6 +153,24 @@ def generate_text(model: str, prompt: str, *, search: bool = False,
 
 # ── 構造化JSON生成 ────────────────────────────────────────────────────────────
 
+def _require_complete(resp) -> None:
+    """Gemini の応答が最後まで出ているか確かめる。
+
+    出力上限に当たると JSON が途中で切れたまま返る。そのまま json.loads すると
+    「Expecting value: line 6 column 72」のような、原因の分からない例外になる。
+    ここで打ち切りとして検出し、作り直せる失敗として投げ直す。
+    """
+    candidates = getattr(resp, "candidates", None) or []
+    if not candidates:
+        raise IncompleteResponse("応答に候補がありません（安全フィルタの可能性）")
+    reason = getattr(candidates[0], "finish_reason", None)
+    if reason is None:
+        return
+    name = getattr(reason, "name", str(reason))
+    if name.upper().replace("FINISH_REASON_", "") != "STOP":
+        raise IncompleteResponse(f"出力が途中で打ち切られました（finish_reason={name}）")
+
+
 def generate_json(model: str, prompt: str, schema: dict, schema_name: str = "result",
                   *, effort: str | None = None) -> str:
     """スキーマで文法を強制したJSON文字列を返す。
@@ -192,6 +218,7 @@ def generate_json(model: str, prompt: str, schema: dict, schema_name: str = "res
                 response_schema=schema,
             ),
         )
+        _require_complete(resp)
         return (resp.text or "").strip()
     except Exception as e:
         check_api_error(e)

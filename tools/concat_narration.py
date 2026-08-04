@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+from pipeline import rewrite
 from pipeline.config import all_projects, stage_dir, parts_dir
 
 
@@ -51,6 +52,12 @@ def concat_narration(project: str, *, force: bool = False) -> list[Path]:
 
     results = []
     for stem, parts in stems.items():
+        # rewrite が途中で終わったプロジェクトは、パートが揃って見えても未完成。
+        # ここで結合すると欠けた台本が翻訳・動画生成まで流れてしまう。
+        if rewrite.state_path(src_dir, stem).exists():
+            print(f"  [skip] {stem}: rewrite が未完了です"
+                  f"（./run.sh で続きから作られます）")
+            continue
         out = dst_dir / f"{stem}_full.txt"
         if out.exists() and not force:
             print(f"  [skip] {out.name}")

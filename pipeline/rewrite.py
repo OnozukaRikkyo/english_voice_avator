@@ -228,6 +228,45 @@ def _validate(paragraphs: list[dict], src_chars: int) -> str | None:
     return None
 
 
+# ── 途中経過の記録 ─────────────────────────────────────────────────────────────
+#
+# 長い transcript は塊ごとにAPIを呼ぶため、7塊目で失敗すると6塊分だけが
+# ディスクに残る。パートの有無だけを見ていると、この中途半端な台本を
+# 「生成済み」と判定して翻訳・動画生成まで流してしまう。
+#
+# そこで塊ごとに進捗を書き、全部終わったら消す。
+# **この記録が残っている = 未完成** であり、次の実行は続きから作り直す。
+
+_STATE_SUFFIX = "_rewrite_state.json"
+
+
+def state_path(output_dir: Path, stem: str) -> Path:
+    return output_dir / f"{stem}{_STATE_SUFFIX}"
+
+
+def _load_state(path: Path, chunks: int, src_chars: int) -> dict | None:
+    """前回の途中経過を読む。今回の入力と食い違っていれば捨てる。"""
+    if not path.exists():
+        return None
+    try:
+        state = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    # transcript が差し替わった / 分割数が変わった場合、前回のパートは繋がらない
+    if state.get("chunks") != chunks or state.get("src_chars") != src_chars:
+        return None
+    if not isinstance(state.get("done"), int) or not (0 < state["done"] < chunks):
+        return None
+    return state
+
+
+def _save_state(path: Path, *, chunks: int, src_chars: int, done: int, parts: list[Path]) -> None:
+    path.write_text(json.dumps({
+        "chunks": chunks, "src_chars": src_chars, "done": done,
+        "parts": [p.name for p in parts],
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def _with_opening(part_text: str) -> str:
     """台本の先頭に定型の挨拶を差し込む（part01 だけに適用する）。
 
@@ -292,9 +331,27 @@ def rewrite_file(
     if len(chunks) > 1:
         print(f"  transcript を {len(chunks)} 分割して個別に台本化します"
               f"（1塊あたり約 {len(text) // len(chunks):,}字）")
+
+        # 前回が途中で終わっていれば、済んだ塊は作り直さず続きから
+        spath = state_path(output_dir, txt_path.stem)
+        state = _load_state(spath, len(chunks), len(text))
         results: list[Path] = []
+        done = 0
         tail = ""            # 直前の塊の台本の末尾。続きとして書かせるために渡す
+        if state:
+            results = [output_dir / name for name in state["parts"]]
+            missing = [p.name for p in results if not p.exists()]
+            if missing:
+                print(f"  [resume] 記録にあるパートが見つかりません（{missing}）。最初から作り直します")
+                results = []
+            else:
+                done = state["done"]
+                tail = results[-1].read_text(encoding="utf-8")[-_CONTEXT_CHARS:]
+                print(f"  [resume] 前回は {done}/{len(chunks)} 塊まで完了しています。続きから作ります")
+
         for i, chunk in enumerate(chunks, 1):
+            if i <= done:
+                continue
             where = "first" if i == 1 else ("last" if i == len(chunks) else "middle")
             print(f"  chunk {i}/{len(chunks)} ({len(chunk):,}字, {where})")
             got = _rewrite_chunk(chunk, txt_path, output_dir, model,
@@ -303,6 +360,10 @@ def rewrite_file(
             results.extend(got)
             if got:
                 tail = got[-1].read_text(encoding="utf-8")[-_CONTEXT_CHARS:]
+            # 塊を1つ終えるごとに記録する。ここで落ちても次回はこの続きから。
+            _save_state(spath, chunks=len(chunks), src_chars=len(text), done=i, parts=results)
+
+        spath.unlink(missing_ok=True)   # 全塊完了。記録を消す = 完成の印
         total = sum(len(p.read_text(encoding="utf-8")) for p in results)
         print(f"  合計 {total:,}字 = transcript の {total / len(text) * 100:.0f}%")
         return results
@@ -347,9 +408,21 @@ def _rewrite_chunk(
     for attempt in range(1, _MAX_ATTEMPTS + 1):
         # 用語の正確さ・行間の分析・意味単位での分割を同時に要求する最難関の工程。
         # OpenAI 経路では推論を深く使う（Gemini 経路では無視される）。
-        raw = llm.generate_json(model, prompt, schema, schema_name="narration_parts", effort="high")
-        paragraphs = sorted(json.loads(raw or "[]"), key=lambda x: x["index"])
-        problem = _validate(paragraphs, len(text))
+        #
+        # 応答が壊れること自体は起きる（出力上限での打ち切り、同じ文の繰り返しで
+        # 巨大化するなど）。壊れた応答は例外で落とさず、この工程の他の失敗と同じく
+        # 作り直しの対象として扱う。
+        raw = ""
+        try:
+            raw = llm.generate_json(model, prompt, schema,
+                                    schema_name="narration_parts", effort="high")
+            paragraphs = sorted(json.loads(raw or "[]"), key=lambda x: x["index"])
+            problem = _validate(paragraphs, len(text))
+        except llm.IncompleteResponse as e:
+            paragraphs, problem = [], str(e)
+        except (json.JSONDecodeError, TypeError, KeyError) as e:
+            paragraphs = []
+            problem = f"応答がJSONとして読めません（{len(raw or ''):,}字, {type(e).__name__}: {e}）"
         if problem is None:
             break
         if attempt == _MAX_ATTEMPTS:
@@ -392,7 +465,11 @@ def run(
 
     for txt in sorted(src_dir.glob("*.txt")):
         existing = sorted(dst_dir.glob(f"{txt.stem}_part*.txt"))
-        if existing and not force:
+        spath = state_path(dst_dir, txt.stem)
+        # 途中経過の記録が残っている = 前回が最後まで終わっていない。
+        # パートが揃って見えても完成ではないので、スキップしてはならない。
+        unfinished = spath.exists()
+        if existing and not force and not unfinished:
             invalid = [f for f in existing if len(f.read_text(encoding="utf-8").strip()) < 50]
             if invalid:
                 print(f"  [invalid] {len(invalid)} part(s) too short, regenerating: {[f.name for f in invalid]}")
@@ -402,10 +479,14 @@ def run(
                 print(f"  [skip] {txt.stem} → {len(existing)} part(s) in narration/parts/")
                 results.extend(existing)
                 continue
-        if existing and force:
+        if existing and unfinished and not force:
+            print(f"  [incomplete] {txt.stem} は前回途中で終わっています（{len(existing)} part(s)）")
+        if force:
             for f in existing:
                 f.unlink()
-            print(f"  [force] removed {len(existing)} existing part(s)")
+            spath.unlink(missing_ok=True)
+            if existing:
+                print(f"  [force] removed {len(existing)} existing part(s)")
         print(
             f"  Rewriting: {txt.name}  (max_chars={'unlimited' if effective_max == -1 else effective_max})"
             f"  [{active_model} / {llm.provider(active_model)}]"
