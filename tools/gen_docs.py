@@ -17,7 +17,7 @@ DOCS = ROOT / "docs"
 
 sys.path.insert(0, str(ROOT))
 from pipeline.config import (
-    PRESETS,
+    NARRATION_OPENING, PRESETS,
     STEP_IO, NOTEBOOKLM_PROMPT_MODEL,
     TRANSCRIBE_MODEL, REWRITE_MODEL, TRANSLATE_MODEL,
 )
@@ -331,6 +331,30 @@ def gen_video_guide() -> str:
         "\n"
         "分けたときの動画は `_part01_01.mp4` のように枝番が付きます。\n"
         "1本に収まったパートは枝番なしのままです。\n"
+        "\n"
+        "---\n"
+        "\n"
+        "## 冒頭の挨拶\n"
+        "\n"
+        "台本の先頭には、毎回まったく同じ挨拶が自動で入ります。\n"
+        "\n"
+        "```\n"
+        f"{NARRATION_OPENING}\n"
+        "```\n"
+        "\n"
+        "AIには書かせていません。文言が回ごとにぶれないよう、`part01` の\n"
+        "`<speak>` の中へ機械的に差し込んでいます。AIには「挨拶と名乗りは書くな、\n"
+        "本題から始めろ」と指示しているので、二重になりません。\n"
+        "\n"
+        "文言を変えるときは `.env` に1行書きます（コードの編集は不要）。\n"
+        "\n"
+        "```\n"
+        "NARRATION_OPENING=Hello everyone, and welcome back. <break time=\"0.5s\"/> "
+        "I'm Bogdan Parkhomenko. <break time=\"1.5s\"/>\n"
+        "```\n"
+        "\n"
+        "空にすれば挨拶を入れません。既定の「new journey（新しい旅の始まり）」は\n"
+        "開設回向けの文言なので、回を重ねたら `welcome back` などへ差し替えてください。\n"
         "\n"
         "---\n"
         "\n"

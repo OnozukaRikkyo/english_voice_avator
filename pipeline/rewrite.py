@@ -12,9 +12,9 @@ REWRITE_MAX_CHARS in config.py は **transcript を何文字ずつモデルに�
 import json
 from pathlib import Path
 
-from . import llm
+from . import llm, ssml
 from .config import (
-    REWRITE_MODEL, REWRITE_MAX_CHARS,
+    REWRITE_MODEL, REWRITE_MAX_CHARS, NARRATION_OPENING,
     stage_dir, parts_dir, all_projects, STEP_IO,
 )
 
@@ -22,7 +22,7 @@ _IN, _OUT = STEP_IO["rewrite"]
 
 # ── Shared role + content instructions ────────────────────────────────────────
 
-_ROLE = """\
+_ROLE_BASE = """\
 # Role & Objective
 You are a subject-matter expert in whatever field the transcript covers, and a high-impact \
 YouTube scriptwriter. You will receive a transcript of a two-person dialogue discussing news \
@@ -81,6 +81,20 @@ not a short summary.
 - Do NOT add breaks in the middle of a sentence.
 - Example: <speak>The announcement landed just after midnight. <break time="0.5s"/> Here is why that matters. <break time="1.0s"/> For the first time...</speak>\
 """
+
+# 定型の挨拶は config.NARRATION_OPENING を機械的に差し込む。モデルにも書かせると
+# 挨拶が二重になるので、書かないよう明示する（挨拶を空にした場合は指示ごと消える）。
+_OPENING_RULE = """
+
+6. The Opening Greeting Is Added For You — DO NOT WRITE ONE:
+- A fixed spoken opening (greeting and presenter introduction) is prepended automatically \
+before your text.
+- Do NOT open with "hello", "welcome", "hi everyone", or any similar greeting.
+- Do NOT introduce the presenter or state a name.
+- Begin directly with the hook — the first line of substance.\
+"""
+
+_ROLE = _ROLE_BASE + (_OPENING_RULE if NARRATION_OPENING.strip() else "")
 
 # ── Unlimited mode: no mention of splitting ────────────────────────────────────
 
@@ -214,6 +228,18 @@ def _validate(paragraphs: list[dict], src_chars: int) -> str | None:
     return None
 
 
+def _with_opening(part_text: str) -> str:
+    """台本の先頭に定型の挨拶を差し込む（part01 だけに適用する）。
+
+    挨拶は <speak> の外に置けない。SSML として妥当でなくなるうえ、
+    heygen は1パートを1本の動画として送るため、中に入れないと読まれない。
+    """
+    opening = NARRATION_OPENING.strip()
+    if not opening:
+        return part_text
+    return ssml.wrap(opening + "\n\n" + ssml.unwrap(part_text))
+
+
 def _build_prompt(max_chars: int, transcript: str) -> str:
     if max_chars == -1:
         return _PROMPT_UNLIMITED + "\n\n" + transcript
@@ -334,6 +360,8 @@ def _rewrite_chunk(
     for offset, p in enumerate(paragraphs):
         idx = start_index + offset          # 塊をまたいで連番になるようずらす
         part_text = p["text"].strip()
+        if idx == 1:                        # 台本全体の先頭。挨拶はここにだけ入る
+            part_text = _with_opening(part_text)
         out = output_dir / f"{txt_path.stem}_part{idx:02d}.txt"
         out.write_text(part_text, encoding="utf-8")
         print(f"    part {idx:02d}: {len(part_text)} chars → {out.name}")

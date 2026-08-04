@@ -153,6 +153,24 @@ OPENAI_AUDIO_MAX_BYTES = 25 * 1024 * 1024
 # 出典: https://developers.heygen.com/docs/usage-limits
 HEYGEN_MAX_CHARS = 5000
 
+# ── ナレーションの定型オープニング ────────────────────────────────────────────
+# 台本の冒頭に必ず入る挨拶。rewrite が part01 の <speak> の中へ差し込む。
+# モデルには書かせない — 毎回まったく同じ文言にするため。
+#
+# 差し替えは .env の NARRATION_OPENING で行う（コード編集不要）。
+# 空文字にすると挿入しない。
+#
+#   NARRATION_OPENING=Hello everyone, and welcome. <break time="0.5s"/> I'm ...
+#
+# 「新しい旅の始まり」は開設回向けの文言である。回を重ねたら
+# 「Hello everyone, and welcome back.」のような定型へ差し替えること。
+NARRATION_OPENING = os.environ.get(
+    "NARRATION_OPENING",
+    'Hello everyone, and welcome. <break time="0.5s"/> '
+    "I'm Bogdan Parkhomenko, and this is the beginning of a new journey. "
+    '<break time="1.5s"/>',
+)
+
 HEYGEN_BASE_URL  = "https://api.heygen.com"
 HEYGEN_AVATAR_ID = os.environ.get("HEYGEN_AVATAR_ID", "")
 HEYGEN_VOICE_ID  = os.environ.get("HEYGEN_VOICE_ID", "")

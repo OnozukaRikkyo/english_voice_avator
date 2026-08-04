@@ -99,6 +99,29 @@ HeyGen の入力上限は5,000字です。台本パートはこれを超える�
 
 ---
 
+## 冒頭の挨拶
+
+台本の先頭には、毎回まったく同じ挨拶が自動で入ります。
+
+```
+Hello everyone, and welcome. <break time="0.5s"/> I'm Bogdan Parkhomenko, and this is the beginning of a new journey. <break time="1.5s"/>
+```
+
+AIには書かせていません。文言が回ごとにぶれないよう、`part01` の
+`<speak>` の中へ機械的に差し込んでいます。AIには「挨拶と名乗りは書くな、
+本題から始めろ」と指示しているので、二重になりません。
+
+文言を変えるときは `.env` に1行書きます（コードの編集は不要）。
+
+```
+NARRATION_OPENING=Hello everyone, and welcome back. <break time="0.5s"/> I'm Bogdan Parkhomenko. <break time="1.5s"/>
+```
+
+空にすれば挨拶を入れません。既定の「new journey（新しい旅の始まり）」は
+開設回向けの文言なので、回を重ねたら `welcome back` などへ差し替えてください。
+
+---
+
 ## アバターと音声を変える
 
 `.env` の `HEYGEN_AVATAR_ID` / `HEYGEN_VOICE_ID` を書き換えます。
