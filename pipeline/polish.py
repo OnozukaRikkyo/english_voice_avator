@@ -82,14 +82,25 @@ Report ONLY failures. A check that passes produces no element at all; do not rep
 something is fine. Return one element per instance: if a habit occurs four times, return
 four elements quoting the four instances, each naming the shared habit in "detail".
 
-# 1. REPEATED RHETORICAL MOVE
-Repetition of a device, not of words. If the narrator performs the same MOVE three or more
-times — reacting with astonishment at a figure, introducing an analogy, asking the listener
-a question, announcing a turn, calling something unprecedented — name the move, count it,
-and quote every instance.
-Wording that differs each time still counts: "I assumed I had misread it", "I had to check
-it twice", "I assumed it might be a typo" are ONE move performed three times, and by the
+# 1. A DEVICE THAT HAS BECOME A HABIT
+You are given no list of devices to look for. Derive them from THIS script: read it through,
+notice every construction the narrator returns to in order to do the same job for the
+listener, and name each one in your own words. What counts as a device depends entirely on
+the story — a market piece leans on different moves than a match report or an outbreak
+investigation.
+
+Count by FUNCTION, never by wording. Two sentences are the same device when they do the same
+job, however differently they are phrased: "I assumed I had misread it", "I had to check it
+twice" and "that range was easy to misread" are ONE device used three times, and by the
 third the listener hears a performance rather than a reaction.
+
+Report any device used more than TWICE. Name it, give the count, and quote the instances
+beyond the second — not the ones that stay.
+
+Look hardest at whatever the script was clearly required to include. A mandated element is
+what most often collapses into a formula: the writer satisfies the requirement by finding
+one shape that works and reusing it. If every instance of some move sounds interchangeable,
+that is the defect, whatever the move happens to be.
 
 # 2. BROKEN SENTENCE
 A sentence that does not survive on its own. Four kinds, whatever the subject:
@@ -110,9 +121,10 @@ paragraphs, ending where the script stops developing it and takes up another. A
 <break time="1.5s"/> usually marks one. Identify the chapters first, then check:
 - Does the opening pose a question about the most surprising event in the script, within
   roughly the first 150 words?
-- Does each chapter open with a spoken signpost saying where the argument has arrived?
-- Does each chapter before the last END with a forward reference to that opening question
-  — a line telling the listener the payoff is still coming?
+- At each chapter boundary, can a listener tell where the argument has arrived? Report a
+  boundary that arrives with no orientation at all.
+- Before the last chapter, is the listener ever told that something promised at the opening
+  is still coming? Report its complete absence — not its frequency, which section 1 covers.
 - Does the ending return to the opening question and close it?
 Report only what is MISSING, one element per missing item. Since missing text cannot be
 quoted, set "quote" to the existing sentence the new line should follow (or, for a missing
@@ -121,42 +133,30 @@ If the opening question itself is absent, report THAT alone: the forward referen
 closing return depend on it, and reporting them too would produce edits that point at
 nothing.
 
-# 4. META-NARRATION
-The script talking about its own structure instead of its subject. Two kinds:
-- SELF-REFERENCE the ear cannot follow: "the area described at the opening", "as I
-  mentioned earlier", "in the previous section". A listener cannot look back. Repeat the
-  figure or the fact instead.
-- TABLE-OF-CONTENTS NARRATION: "the answer to the opening question continues", "this
-  brings us closer to answering that central question", "the final synthesis will
-  connect...". A forward reference is supposed to point at the STORY the listener is
-  waiting for — the restaurant, the fire, the missing money — not at the script's own plan.
-  Allow at most TWO such structural references in the whole script; report every one beyond
-  that, and report any that names "the question" rather than the thing itself.
+# 4. OVER-EXPLANATION
+An inline gloss on a word a general adult listener already knows. The test is whether
+ordinary journalism in this field uses the word without explaining it: if a newspaper would
+print it bare, so should the script. Terms that genuinely need a gloss are the ones a
+newspaper would also explain — the trade's internal vocabulary, an acronym, a measure whose
+name does not say what it measures.
 
-# 5. OVER-EXPLANATION
-An inline gloss on a word a general adult listener already knows — "a stadium, a venue
-where matches are played", "VIPs, or very important people", "a logistics hub, a site that
-stores and moves supplies". The test is whether ordinary journalism uses the word without
-explaining it. Genuine specialist terms — loan-loss provisions, expected goals, a
-hit-to-kill interceptor, a p-value — keep their gloss.
-
-# 6. ATTRIBUTION
+# 5. ATTRIBUTION
 Judge these from the script alone; they need no transcript.
 - Wording implying the programme has its own reporters or private informants ("our
   sources", "we have learned").
 - A future event stated as certain rather than as a possibility.
 - An accusation against a named person or organisation with no attribution anywhere in the
   script.
-Anything that requires comparing the script against the transcript belongs in section 7,
+Anything that requires comparing the script against the transcript belongs in section 6,
 not here. Report each defect once, under one category only.
 
-# 7. GROUNDING (only if a transcript section is supplied below)
+# 6. GROUNDING (only if a transcript section is supplied below)
 A fact, figure, date, name or causal claim in the script that the transcript does not
 support, or hedging present in the transcript that the script dropped.
 
 Return a JSON array. Each element:
-- "category": one of REPEATED MOVE, BROKEN SENTENCE, MISSING STRUCTURE, META-NARRATION,
-  OVER-EXPLANATION, ATTRIBUTION, GROUNDING
+- "category": one of HABIT, BROKEN SENTENCE, MISSING STRUCTURE, OVER-EXPLANATION,
+  ATTRIBUTION, GROUNDING
 - "quote": the exact text from the script. For a MISSING STRUCTURE absence, quote the
   sentence the new line should follow.
 - "detail": one sentence in JAPANESE saying what is wrong.
@@ -212,17 +212,17 @@ has three fields — "old", "new" and "why" — and no other content is permitte
    at a number, the replacement should do something else entirely, such as stating the
    consequence flatly or contrasting it with a second figure. Replacements must differ from
    each other, or you have simply created the next catchphrase.
-4. For missing structure, insert one or two sentences at the position given, and leave the
-   surrounding sentences untouched. A forward reference names the THING the listener is
-   waiting for, not the script's plan: "That restaurant on Kudrinskaya Square is still
-   waiting" — never "the answer to the central question continues". Vary every one you
-   write; two identical-sounding callbacks are worse than one.
-4a. REMOVING A PERSONAL REACTION MEANS DELETING THE SENTENCE. Do not launder it into an
-   impersonal husk: "I assumed I had misread it" must not become "That range initially
-   appeared easy to misread", which says nothing. Cut the sentence, or replace it with a
-   statement that carries actual information.
-4b. NEVER refer to the script's own structure. The listener cannot look back at "the area
-   described at the opening" — repeat the figure.
+4. To add a missing device, insert one or two sentences at the position given and leave
+   the surrounding sentences untouched. To remove an excess one, cut it.
+4a. WHEN A DEVICE IS OVERUSED, THE INSTANCES YOU KEEP MUST NOT MATCH EACH OTHER. Rewriting
+   every excess instance into the same new shape is how the previous formula was replaced
+   by the current one. Where you can, drop the framing entirely and let the content do the
+   work.
+4b. A REMOVAL IS A DELETION, NOT A DISGUISE. Stripping the "I" out of a personal reaction
+   leaves a sentence that parses and says nothing. Cut it, or replace it with a statement
+   that carries information the listener did not have.
+4c. NEVER refer to the script's own shape. The listener cannot look back at an earlier
+   passage or forward to a planned section — name the fact, not its position.
 5. For a broken sentence, restore the meaning the transcript supports. Do not invent
    facts. If the transcript shows the script's figure, date or name is simply WRONG, correct
    it to the transcript's version and say so in "why" — rule 2 protects the source's facts,
@@ -272,10 +272,9 @@ Report a failure only when something went missing that nobody asked to remove:
    settled fact.
 3. An attribution or hedge ("reportedly", "according to", "unconfirmed") dropped without a
    reason that asked for it.
-4. "new" does not carry meaning on its own. A grammatical sentence that says nothing is a
-   failure: "That range initially appeared easy to misread" is what remains when a personal
-   reaction is de-personalised instead of deleted. If "new" would puzzle a listener hearing
-   it once, reject it.
+4. "new" does not carry meaning on its own. A grammatical sentence that informs no one is
+   a failure — it is what remains when something is disguised instead of deleted. If "new"
+   would puzzle a listener hearing it once, reject it.
 
 Return a JSON array with one element per pair, in the same order:
 - "ok": true if the edit does what its reason asked without collateral loss
