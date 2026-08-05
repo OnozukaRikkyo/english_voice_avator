@@ -12,6 +12,7 @@ review は台本を **文字起こしと** 突き合わせる（台本が素材�
   narration/{stem}_full.txt       ← 読む
   narration/{stem}_factcheck.md   ← 書く（人が読む用）
 """
+import re
 from pathlib import Path
 
 from . import artifact, llm, ssml
@@ -34,26 +35,35 @@ league, a company and its market, an agency and its jurisdiction)
 - named place, venue, or facility
 - direct causal or superlative claim ("the largest", "the first", "caused by")
 
-For each item give:
-- Claim: the exact statement as the script words it (short quote)
-- What to verify: the concrete way it could be wrong — "title may not match the person as \
-of the broadcast date", "figure may conflate revenue with profit", "venue name spelling", \
-"the rule may have taken effect on a different date". Name-and-role pairings are the \
-classic AI-introduced error: flag every one.
-- Primary source: the KIND of source that settles it (official filings, league or \
-federation records, government registry, peer-reviewed publication, company statements, \
+For each item give four fields, named here by the column they go in:
+- 該当箇所 (Claim): the exact statement as the script words it (short quote)
+- 確認すべき点 (What to verify): the concrete way it could be wrong — the title may not \
+match the person as of the broadcast date, the figure may conflate revenue with profit, \
+the venue name may be misspelled, the rule may have taken effect on another date. \
+Name-and-role pairings are the classic AI-introduced error: flag every one.
+- 一次ソース (Primary source): the KIND of source that settles it (official filings, league \
+or federation records, government registry, peer-reviewed publication, company statements, \
 court documents, official casualty reports)
-- Risk: high if an error would misidentify a person, misstate an accusation, a casualty \
-figure, or a sum of money; medium for dates and quantities that shift emphasis; low for \
-the rest
+- リスク (Risk): High if an error would misidentify a person, misstate an accusation, a \
+casualty figure, or a sum of money; Medium for dates and quantities that shift emphasis; \
+Low for the rest
 
 Do NOT verify anything yourself and do NOT guess at answers — produce the checklist, \
 not the verdict. Do not skip items because they look obviously true.
 
+# Language
+
+The person who will do the checking works in Japanese; the script is English.
+- "確認すべき点" and "一次ソース": write in JAPANESE (です・ます調).
+- "該当箇所": quote the English phrase from the script VERBATIM. Never translate it — the \
+reader must be able to find it in the script.
+- "リスク": use exactly the English words High, Medium, or Low.
+
 Output a markdown document:
-- one line stating how many items were extracted
-- one table, sorted by risk (high first), with columns: Claim | What to verify | \
-Primary source | Risk
+- one line in Japanese stating how many items were extracted（例: 「検証項目 84 件」）
+- one table, sorted by risk (High first), with these exact column headers:
+
+| 該当箇所 | 確認すべき点 | 一次ソース | リスク |
 """
 
 
@@ -62,7 +72,9 @@ def factcheck_file(src: Path, dst: Path, model: str = REVIEW_MODEL) -> Path:
     print(f"  Fact-check list: {src.name} ({len(text):,} chars)  [{model} / {llm.provider(model)}]")
     table = llm.generate_text(model, _PROMPT + "\n\n--- script ---\n" + text)
     artifact.write_checked(dst, table, min_chars=300, label=f"factcheck/{src.name}")
-    high = table.lower().count("| high")
+    # リスク列の値は英語（High/Medium/Low）で固定させている。見出しを日本語にしても
+    # 数え方が壊れないよう、セル区切り込みで数える。
+    high = len(re.findall(r"\|\s*High\s*\|", table, re.I))
     print(f"    → {dst.name}（high {high} 件）")
     return dst
 

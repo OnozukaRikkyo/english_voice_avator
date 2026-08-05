@@ -116,6 +116,15 @@ Return one JSON array with a single element:
 (the exact phrase from the draft, under 30 words), "problem" (one sentence), and "fix" \
 (one sentence on what you changed).
 - "revised": the corrected script in SSML.
+
+# Language Of The Findings
+
+The person reading your findings works in Japanese; the script itself is English.
+- "problem" and "fix": write in JAPANESE (です・ます調), one sentence each.
+- "quote": copy the English phrase from the draft VERBATIM. Never translate it — the \
+reader needs to find it in the script.
+- "type" and "severity": keep the English labels exactly as listed above.
+- "revised": English, unchanged in language — it is the broadcast script.
 """
 
 # 表記揺れは part をまたいで起きる（実例: 同一のレストランが part05 で "Balzi Rossi"、
