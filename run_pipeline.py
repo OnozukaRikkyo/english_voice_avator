@@ -3,13 +3,14 @@
 
 Entry point is ./run.sh (this file is not meant to be run directly).
 
-  ./run.sh [--steps STEP1,STEP2,...] [--project SLUG] [--force] [--max-chars N]
-           [--provider {openai,gemini}] [--model-<step> MODEL]
+  ./run.sh [--steps STEP1,STEP2,...] [--no-video] [--project SLUG] [--force]
+           [--max-chars N] [--provider {openai,gemini}] [--model-<step> MODEL]
 
 Steps (default: all):
   convert          raw/             → audio/
   transcribe       audio/           → transcript/
-  rewrite          transcript/      → narration/parts/
+  rewrite          transcript/      → draft/parts/
+  review           draft/parts/     → narration/parts/
   concat_narration narration/parts/ → narration/*_full.txt
   translate        narration/       → translation/
   heygen           narration/parts/ → video/parts/
@@ -17,12 +18,14 @@ Steps (default: all):
 
 Flags:
   --force          Force re-run even if output files already exist.
+  --no-video       Stop before video generation (heygen / concat_video).
+                   Cannot be combined with --steps.
   --max-chars N    Override REWRITE_MAX_CHARS for the rewrite step only.
                    Use -1 for unlimited (single file), or N for max chars per segment.
   --provider {openai,gemini}
                    Switch every step to one provider for this run, using the
                    preset in pipeline/config.py.
-  --model-transcribe / --model-rewrite / --model-translate MODEL
+  --model-transcribe / --model-rewrite / --model-review / --model-translate MODEL
                    Override one step's model. Takes precedence over --provider.
                    The model name picks the provider: gpt-* → OpenAI, else Gemini.
                    To change it permanently, edit pipeline/config.py.
@@ -44,12 +47,16 @@ ALL_STEPS = [
     "convert",
     "transcribe",
     "rewrite",
+    "review",
     "concat_narration",
     "translate",
     "heygen",
     "concat_video",
 ]
 _AUDIO_EXTS = {".m4a", ".mp4", ".mp3"}
+
+# --no-video で外す工程。名前で持つのは ALL_STEPS の並びが変わっても壊れないため。
+_VIDEO_STEPS = ("heygen", "concat_video")
 
 
 def _scan_inbox() -> None:
@@ -99,8 +106,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="English Voice Avatar pipeline")
     parser.add_argument(
         "--steps",
-        default=",".join(ALL_STEPS),
+        default=None,
         help=f"Comma-separated steps to run (default: all). Choices: {', '.join(ALL_STEPS)}",
+    )
+    parser.add_argument(
+        "--no-video",
+        action="store_true",
+        dest="no_video",
+        help=f"Stop before video generation ({', '.join(_VIDEO_STEPS)})",
     )
     parser.add_argument(
         "--project",
@@ -151,7 +164,18 @@ def main() -> None:
         print(e, file=sys.stderr)
         sys.exit(1)
 
-    steps = [s.strip() for s in args.steps.split(",")]
+    # --steps は工程を明示するもの、--no-video は既定から動画を外すもの。
+    # 両方渡されたらどちらを尊重すべきか決められないので、黙って片方を無視しない。
+    if args.steps and args.no_video:
+        print("--steps と --no-video は同時に使えません（--steps で工程を選んでください）",
+              file=sys.stderr)
+        sys.exit(1)
+    if args.steps:
+        steps = [s.strip() for s in args.steps.split(",")]
+    elif args.no_video:
+        steps = [s for s in ALL_STEPS if s not in _VIDEO_STEPS]
+    else:
+        steps = list(ALL_STEPS)
     unknown = set(steps) - set(ALL_STEPS)
     if unknown:
         print(f"Unknown steps: {unknown}", file=sys.stderr)
@@ -174,6 +198,8 @@ def main() -> None:
 
     if args.force:
         print("[--force] Existing output files will be overwritten.")
+    if args.no_video:
+        print(f"[--no-video] 動画は作りません: {', '.join(steps)}")
     if args.max_chars is not None:
         print(f"[--max-chars {args.max_chars}] Overriding REWRITE_MAX_CHARS for rewrite step.")
     if args.provider or models != current_models():
@@ -209,6 +235,10 @@ def main() -> None:
                     project, force=args.force, max_chars=args.max_chars,
                     model=models["rewrite"],
                 )
+
+            elif step == "review":
+                from pipeline import review
+                review.run(project, force=args.force, model=models["review"])
 
             elif step == "concat_narration":
                 from tools.concat_narration import concat_narration

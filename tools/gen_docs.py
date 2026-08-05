@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT))
 from pipeline.config import (
     NARRATION_OPENING, PRESETS,
     STEP_IO, NOTEBOOKLM_PROMPT_MODEL,
-    TRANSCRIBE_MODEL, REWRITE_MODEL, TRANSLATE_MODEL,
+    TRANSCRIBE_MODEL, REWRITE_MODEL, REVIEW_MODEL, TRANSLATE_MODEL,
 )
 from run_pipeline import ALL_STEPS  # active steps only — suspended ones are commented out there
 
@@ -109,7 +109,7 @@ def gen_user_guide() -> str:
         "音声を1本だけ指定して処理することもできます。\n"
         "\n"
         "```bash\n"
-        "./run_audio.sh path/to/audio.m4a\n"
+        "./run.sh path/to/audio.m4a\n"
         "```\n"
         "\n"
         "処理後は inbox から自動で片付けられるので、次のファイルを指定してまた\n"
@@ -122,7 +122,23 @@ def gen_user_guide() -> str:
         "  narration/*_full.txt     ← 英語ナレーション台本（SSML）\n"
         "  translation/*_ja.txt     ← その日本語訳\n"
         "  video/*.mp4              ← 結合済みのアバター動画\n"
+        "  draft/parts/*_review.md  ← 台本のどこを報道基準で直したかの記録\n"
         "```\n"
+        "\n"
+        "### 台本の点検（review 工程）\n"
+        "\n"
+        "`rewrite` が書いた台本は、そのままでは報道として危うい箇所を含みます。\n"
+        "文字起こしに無い数字が足される、\"reportedly\" が落ちて推測が断定になる、\n"
+        "片方の当事者の主張が地の文になる — 読み返しの効かない音声では、いずれも\n"
+        "そのまま事実として受け取られます。\n"
+        "\n"
+        "`review` は台本を **元の文字起こしと突き合わせて** 点検し、最小限の修正を\n"
+        "入れた版を `narration/parts/` に書きます。以降の工程はこちらを使います。\n"
+        "\n"
+        "何を直したかは `draft/parts/{stem}_part01_review.md` に残るので、\n"
+        "録音前にここだけ読めば済みます。指摘が high（裏付け無し・断定化・\n"
+        "一方的な引用）で出ていたら、元の音声まで戻って確認してください。\n"
+        "指摘が1件も無ければ台本には触らず、そのまま複製します。\n"
         "\n"
         "各工程は出力があるとスキップします。途中で止まっても `./run.sh` を\n"
         "もう一度実行すれば続きから進みます。作り直すときは `--force` が要ります。\n"
@@ -148,7 +164,9 @@ def gen_user_guide() -> str:
         "./run.sh --force                       # 既存の出力を無視して作り直す\n"
         "./run.sh --provider openai             # 全工程を ChatGPT に切り替える\n"
         "./run.sh --project スラッグ名          # 特定プロジェクトだけ処理する\n"
-        "./run_again.sh                         # 既存を上書きして作り直す（引数不要）\n"
+        "./run.sh --again                       # 既存を上書きして作り直す（引数不要）\n"
+        "./run.sh --no-video                    # 動画を作らず台本と日本語訳まで\n"
+        "./run_no_video.sh                      # 同上（近道）\n"
         "python tools/clean_data.py             # 生成物を全部消してやり直す\n"
         "./tool_test.sh                         # 自動テストを流す（課金なし）\n"
         "```\n"
@@ -170,14 +188,18 @@ def gen_user_guide() -> str:
         "| `gen_` | 生成物を作る（NotebookLM プロンプト） |\n"
         "\n"
         "```\n"
-        "run.sh                        inbox の全件を処理する（標準入口）\n"
-        "run_audio.sh <file>           音声1本を指定して処理する\n"
-        "run_again.sh                  既存プロジェクトを上書きして作り直す\n"
+        "run.sh                        パイプラインの唯一の入口\n"
+        "  ./run.sh                      inbox の全件を処理する\n"
+        "  ./run.sh <file>               音声1本を指定して処理する\n"
+        "  ./run.sh --again              既存プロジェクトを上書きして作り直す\n"
+        "  ./run.sh --no-video           動画を作らず台本と日本語訳まで\n"
+        "run_no_video.sh               ./run.sh --no-video の近道\n"
         "gen_notebooklm_prompt.sh      資料 → NotebookLM プロンプト\n"
         "\n"
         "step_convert.sh               音声形式の変換\n"
         "step_transcribe.sh            文字起こし\n"
         "step_rewrite.sh               ナレーション台本の生成\n"
+        "step_review.sh                台本を報道基準で点検して修正\n"
         "step_concat_narration.sh      台本パートの結合\n"
         "step_translate.sh             日本語訳\n"
         f"step_heygen.sh                アバター動画の生成{_hold('heygen')}\n"
@@ -313,7 +335,7 @@ def gen_video_guide() -> str:
         "\n"
         "```bash\n"
         "./run.sh --force                      # 全工程を作り直す\n"
-        "./run_again.sh                        # 同上（引数不要・直近のプロジェクトが対象）\n"
+        "./run.sh --again                      # 同上（引数不要・直近のプロジェクトが対象）\n"
         "./run.sh --steps rewrite,translate    # 特定の工程だけやり直す\n"
         "```\n"
         "\n"
@@ -470,6 +492,7 @@ def gen_model_guide() -> str:
         for const, model in (
             ("TRANSCRIBE_MODEL", TRANSCRIBE_MODEL),
             ("REWRITE_MODEL", REWRITE_MODEL),
+            ("REVIEW_MODEL", REVIEW_MODEL),
             ("TRANSLATE_MODEL", TRANSLATE_MODEL),
         )
     )
@@ -559,7 +582,8 @@ def gen_model_guide() -> str:
         "\n"
         "| 工程 | 難易度 | 理由 |\n"
         "|---|---|---|\n"
-        "| rewrite | 最難 | 軍事用語の正確さ・行間の戦略的洞察・独自視点・SSML・意味単位での分割を同時に要求 |\n"
+        "| rewrite | 最難 | 用語の正確さ・行間の分析・冗長の削り込み・SSML・意味単位での分割を同時に要求 |\n"
+        "| review | 最難 | 裏付けのない断定・煽り・片側だけの視点を見つける。安いモデルは問題を見つけられない |\n"
         "| transcribe | 高 | 固有名詞の聞き取り。誤ると後段すべてが誤った前提で動き、取り返しがつかない |\n"
         "| notebooklm | 中〜高 | 検索の使い分けと、一般読者が分からない語だけを選ぶ取捨選択 |\n"
         "| translate | 中 | 翻訳自体は機械的だが、NHK準拠の固有名詞表記と論調の維持が要る |\n"

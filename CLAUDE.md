@@ -13,7 +13,8 @@ Japanese translation, and a HeyGen avatar video.
 ```
   raw/                → [convert         ] → audio/
   audio/              → [transcribe      ] → transcript/
-  transcript/         → [rewrite         ] → narration/parts/
+  transcript/         → [rewrite         ] → draft/parts/
+  draft/parts/        → [review          ] → narration/parts/
   narration/parts/    → [concat_narration] → narration/   ← 出力1
   narration/_full.txt → [translate       ] → translation/   ← 出力2
   narration/parts/    → [heygen          ] → video/parts/
@@ -35,9 +36,12 @@ data/
     raw/                    raw input (m4a / mp4 / mp3)
     audio/                  converted mp3
     transcript/             English transcript, verbatim
+    draft/
+      parts/                  _part*.txt — narration draft (rewrite output)
+                              _part*_review.md — what the review flagged
     narration/
       {stem}_full.txt       ← output 1: English narration script (SSML)
-      parts/                  _part*.txt — split segments
+      parts/                  _part*.txt — reviewed segments (heygen input)
     translation/
       {stem}_ja.txt         ← output 2: Japanese translation
     video/                  ← output 3: avatar video (mp4)
@@ -56,6 +60,7 @@ enforced by `tools/check_design.py`.
 | `raw/` | Raw input (m4a / mp4 / mp3) |
 | `audio/` | Converted audio (mp3) |
 | `transcript/` | English transcript (verbatim) |
+| `draft/` | Narration draft, before the news review |
 | `narration/` | English narration script (SSML) |
 | `translation/` | Japanese translation of the narration |
 | `video/` | Avatar video (mp4, HeyGen) |
@@ -66,7 +71,8 @@ enforced by `tools/check_design.py`.
 |------|-----------|----------|--------|--------|
 | `convert` | `raw/` | `audio/` | `pipeline/convert.py` | active |
 | `transcribe` | `audio/` | `transcript/` | `pipeline/transcribe.py` | active |
-| `rewrite` | `transcript/` | `narration/` | `pipeline/rewrite.py` | active |
+| `rewrite` | `transcript/` | `draft/` | `pipeline/rewrite.py` | active |
+| `review` | `draft/` | `narration/` | `pipeline/review.py` | active |
 | `concat_narration` | `narration/` | `narration/` | `tools/concat_narration.py` | active |
 | `translate` | `narration/` | `translation/` | `pipeline/translate.py` | active |
 | `heygen` | `narration/` | `video/` | `pipeline/heygen.py` | active |
@@ -75,7 +81,7 @@ enforced by `tools/check_design.py`.
 ## How to Add a New Step
 
 1. Add the new stage name to `STAGES` in `pipeline/config.py` at the correct position.
-   (Current order: `["raw", "audio", "transcript", "narration", "translation", "video"]`)
+   (Current order: `["raw", "audio", "transcript", "draft", "narration", "translation", "video"]`)
 2. Add the step to `STEP_IO` with its `(input_stage, output_stage)`.
 3. Create the module with `def run(project: str) -> list[Path]:` —
    `pipeline/<step>.py` if it calls an API, `tools/<step>.py` if it is local-only.
@@ -86,7 +92,8 @@ enforced by `tools/check_design.py`.
 
 ```bash
 ./run.sh                            # everything in data/inbox/
-./run_audio.sh path/to/audio.m4a    # one specified file
+./run.sh path/to/audio.m4a          # one specified file
+./run.sh --no-video                 # stop before video generation
 ./run.sh --steps convert,transcribe # specific steps
 ./run.sh --project my_project       # one project
 ./run.sh --force                    # ignore existing output and rebuild
@@ -107,7 +114,8 @@ Switching provider = editing one line in `pipeline/config.py`.
 | Constant | Value | Provider |
 |----------|-------|----------|
 | `TRANSCRIBE_MODEL` | `gpt-transcribe` | OpenAI |
-| `REWRITE_MODEL` | `gemini-3.5-flash` | Gemini |
+| `REWRITE_MODEL` | `gpt-5.6-luna` | OpenAI |
+| `REVIEW_MODEL` | `gpt-5.6-luna` | OpenAI |
 | `TRANSLATE_MODEL` | `gemini-3.6-flash` | Gemini |
 
 The source audio is English, so transcription is verbatim — no language

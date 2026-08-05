@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT))
 
 from pipeline.config import (
     STAGES, STAGE_LABELS, STEP_IO,
-    TRANSCRIBE_MODEL, REWRITE_MODEL, TRANSLATE_MODEL,
+    TRANSCRIBE_MODEL, REWRITE_MODEL, REVIEW_MODEL, TRANSLATE_MODEL,
     REWRITE_MAX_CHARS, HEYGEN_RATIO,
 )
 from run_pipeline import ALL_STEPS  # 実行される工程だけ。残りは保留中。
@@ -43,7 +43,8 @@ _FINAL_OUTPUTS = {"concat_narration": "出力1", "translate": "出力2"}
 
 # ステージ名だけでは足りない入出力の実体
 _DETAIL = {
-    "rewrite":          (None, "narration/parts/"),
+    "rewrite":          (None, "draft/parts/"),
+    "review":           ("draft/parts/", "narration/parts/"),
     "concat_narration": ("narration/parts/", None),
     "translate":        ("narration/_full.txt", None),
     "heygen":           ("narration/parts/", "video/parts/"),
@@ -139,9 +140,12 @@ data/
     raw/                    raw input (m4a / mp4 / mp3)
     audio/                  converted mp3
     transcript/             English transcript, verbatim
+    draft/
+      parts/                  _part*.txt — narration draft (rewrite output)
+                              _part*_review.md — what the review flagged
     narration/
       {{stem}}_full.txt       ← output 1: English narration script (SSML)
-      parts/                  _part*.txt — split segments
+      parts/                  _part*.txt — reviewed segments (heygen input)
     translation/
       {{stem}}_ja.txt         ← output 2: Japanese translation
     video/                  ← output 3: avatar video (mp4)
@@ -169,7 +173,8 @@ enforced by `tools/check_design.py`.
 
 ```bash
 ./run.sh                            # everything in data/inbox/
-./run_audio.sh path/to/audio.m4a    # one specified file
+./run.sh path/to/audio.m4a          # one specified file
+./run.sh --no-video                 # stop before video generation
 ./run.sh --steps convert,transcribe # specific steps
 ./run.sh --project my_project       # one project
 ./run.sh --force                    # ignore existing output and rebuild
@@ -191,6 +196,7 @@ Switching provider = editing one line in `pipeline/config.py`.
 |----------|-------|----------|
 | `TRANSCRIBE_MODEL` | `{TRANSCRIBE_MODEL}` | {_provider(TRANSCRIBE_MODEL)} |
 | `REWRITE_MODEL` | `{REWRITE_MODEL}` | {_provider(REWRITE_MODEL)} |
+| `REVIEW_MODEL` | `{REVIEW_MODEL}` | {_provider(REVIEW_MODEL)} |
 | `TRANSLATE_MODEL` | `{TRANSLATE_MODEL}` | {_provider(TRANSLATE_MODEL)} |
 
 The source audio is English, so transcription is verbatim — no language

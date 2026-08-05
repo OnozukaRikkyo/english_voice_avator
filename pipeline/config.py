@@ -7,8 +7,10 @@ data/
     raw/          raw input files  (m4a / mp4 / mp3)
     audio/        converted mp3
     transcript/   English transcript, verbatim
+    draft/
+      parts/      narration draft (_part*.txt) + review report (_review.md)
     narration/    English narration script (_full.txt = final)
-      parts/      split segments (_part*.txt) — heygen input
+      parts/      reviewed segments (_part*.txt) — heygen input
     translation/  Japanese translation of narration (_ja.txt)
     video/        avatar video mp4 (final .mp4)   ← 保留中
       parts/      per-segment videos (_part*.mp4) — heygen output
@@ -61,7 +63,14 @@ def _model(env_name: str, default: str) -> str:
 
 
 TRANSCRIBE_MODEL = _model("TRANSCRIBE_MODEL", "gpt-transcribe")      # 音声 → テキスト
-REWRITE_MODEL    = _model("REWRITE_MODEL",    "gemini-3.5-flash")    # 文字起こし → ナレーション台本
+# rewrite は全工程で最も難しい（用語の正確さ・行間の分析・冗長の削り込みを同時に要求する）。
+# flash 系だと言い回しを変えた同じ主張を重ねて字数を稼ぐため、上位モデルを既定にする。
+# rewrite.py は effort="high" を渡しており、これが効くのは OpenAI 経路だけである。
+REWRITE_MODEL    = _model("REWRITE_MODEL",    "gpt-5.6-luna")        # 文字起こし → ナレーション台本
+# review は台本を「放送できるニュース解説か」の観点で点検して直す工程。
+# 裏付けのない断定・見出し的な煽り・片側だけの視点を見つける仕事なので、
+# rewrite と同じく上位モデルを使う（安いモデルは問題を見つけられない）。
+REVIEW_MODEL     = _model("REVIEW_MODEL",     "gpt-5.6-luna")        # 台本の校閲・修正
 TRANSLATE_MODEL  = _model("TRANSLATE_MODEL",  "gemini-3.6-flash")    # 英語ナレーション → 日本語
 
 # tools/gen_notebooklm_prompt.py 専用。用語の正式な英語表記を実際に検索させるため
@@ -78,18 +87,20 @@ NOTEBOOKLM_PROMPT_MODEL = _model("NOTEBOOKLM_PROMPT_MODEL", "gpt-5.6-luna")
 #   ./run.sh --provider openai --model-rewrite gemini-3.5-flash   個別指定が優先
 #
 # プリセットを使わなければ上の4定数がそのまま使われる。
-MODEL_SLOTS = ("transcribe", "rewrite", "translate", "notebooklm")
+MODEL_SLOTS = ("transcribe", "rewrite", "review", "translate", "notebooklm")
 
 PRESETS: dict[str, dict[str, str]] = {
     "openai": {
         "transcribe":         "gpt-transcribe",
         "rewrite":            "gpt-5.6-luna",
+        "review":             "gpt-5.6-luna",
         "translate":          "gpt-5.6-luna",
         "notebooklm":         "gpt-5.6-luna",
     },
     "gemini": {
         "transcribe":         "gemini-3.6-flash",
-        "rewrite":            "gemini-3.5-flash",
+        "rewrite":            "gemini-3.6-flash",
+        "review":             "gemini-3.6-flash",
         "translate":          "gemini-3.6-flash",
         "notebooklm":         "gemini-3.6-flash",
     },
@@ -97,10 +108,11 @@ PRESETS: dict[str, dict[str, str]] = {
 
 
 def current_models() -> dict[str, str]:
-    """上の4定数を slot 名の dict にして返す（プリセット未指定時の既定）。"""
+    """上のモデル定数を slot 名の dict にして返す（プリセット未指定時の既定）。"""
     return {
         "transcribe":         TRANSCRIBE_MODEL,
         "rewrite":            REWRITE_MODEL,
+        "review":             REVIEW_MODEL,
         "translate":          TRANSLATE_MODEL,
         "notebooklm":         NOTEBOOKLM_PROMPT_MODEL,
     }
@@ -184,6 +196,7 @@ STAGES: list[str] = [
     "raw",          # source input files
     "audio",        # converted mp3
     "transcript",   # English transcript, verbatim
+    "draft",        # narration draft, before the news review
     "narration",    # English narration script (SSML)
     "translation",  # Japanese translation of narration
     "video",        # avatar video (mp4)
@@ -195,6 +208,7 @@ STAGE_LABELS: dict[str, str] = {
     "raw":         "Raw input (m4a / mp4 / mp3)",
     "audio":       "Converted audio (mp3)",
     "transcript":  "English transcript (verbatim)",
+    "draft":       "Narration draft, before the news review",
     "narration":   "English narration script (SSML)",
     "translation": "Japanese translation of the narration",
     "video":       "Avatar video (mp4, HeyGen)",
@@ -207,7 +221,8 @@ STAGE_LABELS: dict[str, str] = {
 STEP_IO: dict[str, tuple[str, str]] = {
     "convert":          ("raw",         "audio"),
     "transcribe":       ("audio",       "transcript"),
-    "rewrite":          ("transcript",  "narration"),
+    "rewrite":          ("transcript",  "draft"),
+    "review":           ("draft",       "narration"),
     "concat_narration": ("narration",   "narration"),
     "translate":        ("narration",   "translation"),
     "heygen":           ("narration",   "video"),

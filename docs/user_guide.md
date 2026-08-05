@@ -44,7 +44,7 @@ cp your_audio.m4a data/inbox/    # 1. 置く
 ```
 
 **`./run.sh` は引数なしで最初から最後まで通します。**
-`convert → transcribe → rewrite → concat_narration → translate → heygen → concat_video` が順に動きます。
+`convert → transcribe → rewrite → review → concat_narration → translate → heygen → concat_video` が順に動きます。
 プロジェクト名は音声ファイル名から自動で付きます。
 入力音声は英語である前提です。
 
@@ -52,7 +52,7 @@ cp your_audio.m4a data/inbox/    # 1. 置く
 音声を1本だけ指定して処理することもできます。
 
 ```bash
-./run_audio.sh path/to/audio.m4a
+./run.sh path/to/audio.m4a
 ```
 
 処理後は inbox から自動で片付けられるので、次のファイルを指定してまた
@@ -65,7 +65,23 @@ data/{プロジェクト名}/
   narration/*_full.txt     ← 英語ナレーション台本（SSML）
   translation/*_ja.txt     ← その日本語訳
   video/*.mp4              ← 結合済みのアバター動画
+  draft/parts/*_review.md  ← 台本のどこを報道基準で直したかの記録
 ```
+
+### 台本の点検（review 工程）
+
+`rewrite` が書いた台本は、そのままでは報道として危うい箇所を含みます。
+文字起こしに無い数字が足される、"reportedly" が落ちて推測が断定になる、
+片方の当事者の主張が地の文になる — 読み返しの効かない音声では、いずれも
+そのまま事実として受け取られます。
+
+`review` は台本を **元の文字起こしと突き合わせて** 点検し、最小限の修正を
+入れた版を `narration/parts/` に書きます。以降の工程はこちらを使います。
+
+何を直したかは `draft/parts/{stem}_part01_review.md` に残るので、
+録音前にここだけ読めば済みます。指摘が high（裏付け無し・断定化・
+一方的な引用）で出ていたら、元の音声まで戻って確認してください。
+指摘が1件も無ければ台本には触らず、そのまま複製します。
 
 各工程は出力があるとスキップします。途中で止まっても `./run.sh` を
 もう一度実行すれば続きから進みます。作り直すときは `--force` が要ります。
@@ -91,7 +107,9 @@ cp your_doc.docx data/senario_jp/   # 1. 置く（.docx / .pdf）
 ./run.sh --force                       # 既存の出力を無視して作り直す
 ./run.sh --provider openai             # 全工程を ChatGPT に切り替える
 ./run.sh --project スラッグ名          # 特定プロジェクトだけ処理する
-./run_again.sh                         # 既存を上書きして作り直す（引数不要）
+./run.sh --again                       # 既存を上書きして作り直す（引数不要）
+./run.sh --no-video                    # 動画を作らず台本と日本語訳まで
+./run_no_video.sh                      # 同上（近道）
 python tools/clean_data.py             # 生成物を全部消してやり直す
 ./tool_test.sh                         # 自動テストを流す（課金なし）
 ```
@@ -113,14 +131,18 @@ push すると GitHub Actions でも走ります。どちらも API を呼ばな
 | `gen_` | 生成物を作る（NotebookLM プロンプト） |
 
 ```
-run.sh                        inbox の全件を処理する（標準入口）
-run_audio.sh <file>           音声1本を指定して処理する
-run_again.sh                  既存プロジェクトを上書きして作り直す
+run.sh                        パイプラインの唯一の入口
+  ./run.sh                      inbox の全件を処理する
+  ./run.sh <file>               音声1本を指定して処理する
+  ./run.sh --again              既存プロジェクトを上書きして作り直す
+  ./run.sh --no-video           動画を作らず台本と日本語訳まで
+run_no_video.sh               ./run.sh --no-video の近道
 gen_notebooklm_prompt.sh      資料 → NotebookLM プロンプト
 
 step_convert.sh               音声形式の変換
 step_transcribe.sh            文字起こし
 step_rewrite.sh               ナレーション台本の生成
+step_review.sh                台本を報道基準で点検して修正
 step_concat_narration.sh      台本パートの結合
 step_translate.sh             日本語訳
 step_heygen.sh                アバター動画の生成

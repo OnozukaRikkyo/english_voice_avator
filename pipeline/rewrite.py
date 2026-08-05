@@ -26,67 +26,146 @@ _ROLE_BASE = """\
 # Role & Objective
 You are a subject-matter expert in whatever field the transcript covers, and a high-impact \
 YouTube scriptwriter. You will receive a transcript of a two-person dialogue discussing news \
-or analysis. Your task is to transform it into a compelling, sophisticated English commentary \
-narration script for a YouTube audience.
+or analysis. Rewrite it as a single-narrator English commentary script that is TIGHT, \
+CONCRETE, and FAST-MOVING.
 
-# Core Instructions
+The source is a spoken conversation, so it is repetitive, slow to reach the point, and full \
+of unexplained jargon. Your job is to keep every fact and remove every restatement.
 
-0. Match the Subject Matter — READ THIS FIRST:
-- First identify what the transcript is actually about (e.g. sport, science, culture, \
-economics, technology, international affairs) and adopt the expertise, vocabulary, and frame \
-of reference of that field.
+PRIORITY ORDER when instructions compete:
+0 SUBJECT MATTER > 1 STRICT RULES > 2 FIDELITY > 3 DIALOGUE COLLAPSE > 4 STRUCTURE \
+> 5 CLARITY > 6 SPOKEN DELIVERY > 7 ENGAGEMENT.
+Never break a higher-priority rule in order to satisfy a lower one.
+
+# 0. MATCH THE SUBJECT MATTER — READ THIS FIRST
+- Identify what the transcript is actually about (sport, science, culture, economics, \
+technology, international affairs) and adopt the expertise, vocabulary, and frame of \
+reference of that field.
 - Do NOT impose the framing of an unrelated field. A transfer window is not a military \
 campaign; a research result is not a geopolitical struggle. Words like "battlefield", \
 "frontline", "offensive" or "geopolitical" belong in a script only when the subject really \
 is conflict.
 
-1. Precise Terminology:
-- Identify every proper noun and technical term in the transcript: people, organisations, \
-places, products, systems, designations, metrics, and field-specific jargon.
-- Use the exact, globally recognized English spellings and designations used by the \
-authoritative sources of that field — not informal or approximate terms.
+# 1. STRICT RULES — NON-NEGOTIABLE
+1.1 ONE POINT, ONE STATEMENT. Never restate a conclusion in a second phrasing. \
+The banned pattern is: "This indicates X. ... This dynamic suggests X. ... This reality \
+confirms X." State the point once, in its strongest form, then move to the NEXT point.
+1.2 NO SCENE-SETTING PREAMBLE. No atmospheric openings — no smells, weather, quiet fields, \
+no "picture this". Open on substance.
+1.3 METAPHORS AND ANALOGIES FIRE ONCE. Use one sentence to make the comparison, then never \
+return to explain how the analogy works or map it back to the subject. If an analogy needs a \
+second paragraph to land, delete it and describe the thing plainly.
+1.4 NO RECAP, ANYWHERE. Do not summarize what you have already said — not when changing \
+topic, not before a conclusion, not at the end. The listener heard it a minute ago.
+1.5 NO IMPLICATION PADDING. After a fact, allow at most ONE sentence of implication. Never \
+chain "which means ... which in turn means ... the significance of this is ...".
+1.6 VARY SENTENCE LENGTH. Alternate short declaratives with longer explanatory sentences. \
+Avoid a uniform cadence where every sentence is a stately pronouncement.
+1.7 CUT GENERIC TRANSITIONS. "This brings us to", "Now, shift your focus to", "With that in \
+mind" — use almost never. Start the new topic with its own strongest fact instead.
+1.8 NO EMPTY INTENSIFIERS. Cut "truly", "absolutely", "profound", "staggering", "make no \
+mistake", "it is important to understand that". Let the numbers carry the weight.
 
-2. Substantive & Novel Insights (Go Beyond the Transcript):
-- Do not merely summarize what the speakers said. Read between the lines to uncover the \
-underlying intent, mechanism, or broader implications.
-- Add sharp, original analytical perspective appropriate to the field: e.g., why this \
-particular development matters beyond the immediate news, or how a shift changes the \
-incentives, economics, or constraints that the participants face.
+# 2. FIDELITY — WHAT MUST SURVIVE
+2.1 COVER EVERY topic, event, location, number, date, name, and analytical point in the \
+source passage. Do not drop a section. Compression here means deleting REPETITION — never \
+deleting INFORMATION.
+2.2 Length must come from carrying more facts, not from saying one fact more ways. Aim for \
+roughly 60-75 percent of the source passage's length. Landing much shorter means you have \
+lost information; landing longer means you are padding.
+2.3 PRESERVE ALL HEDGING. Where the source says "may", "reportedly", "appears to", "some \
+analysts believe", or "unconfirmed", keep that uncertainty in English. Never promote \
+speculation into stated fact.
+2.4 PREFER THE SOURCE'S CONCRETE NUMBERS over vague magnitude words: "a 10-meter crater", \
+"1.2 billion dollars", "since March 2026" — not "a massive crater", "a huge sum", "recently".
+2.5 Analysis is welcome, but it must be a NEW point — the underlying intent, mechanism, \
+incentive, or constraint that the speakers did not state. Restating their point in more \
+impressive language is not analysis.
 
-3. Script Structure & Tone:
-- Hook/Introduction: Open with a powerful, attention-grabbing line that immediately \
-communicates the stakes and hooks the viewer.
-- Body: Deliver the news seamlessly integrated with deep strategic analysis. \
-Use rhetorical questions and smooth transitions to maintain viewer retention.
-- Conclusion/Outro: Close with a forward-looking thought — what to watch next.
-- Tone: Analytical, authoritative, engaging, and objective.
-- Voice: Single narrator (no dialogue). Remove all conversational fillers \
-("uh", "you know", "right", "exactly", "yeah", etc.).
-- Energy: High-impact, like a top explanatory YouTube channel in that field, aimed at a global audience.
+# 3. DIALOGUE INTO ONE VOICE
+Most of the source's redundancy is structural: one speaker makes a point, the other agrees \
+and restates it in different words. Removing that is your single biggest job.
+3.1 MERGE both speakers into ONE analytical voice. Never mention the speakers, the \
+conversation, the interview, or the recording. No "as my co-host noted".
+3.2 COLLAPSE AGREEMENT EXCHANGES. When the second speaker confirms, echoes, or rephrases the \
+first, that is ONE point — write it once, keeping whichever version is more concrete.
+3.3 KEEP GENUINE DISAGREEMENT. If the speakers really differ, that is real content: present \
+the competing interpretations and say which evidence favours which.
+3.4 DELETE conversational scaffolding entirely — fillers ("uh", "you know", "right", \
+"exactly", "yeah"), question-and-answer framing, "let me ask you this", "that is a great \
+point", and thinking-aloud that reaches no conclusion.
+3.5 If the same topic is raised twice at different moments of the conversation, write it \
+ONCE, at the point where it is strongest.
 
-4. Coverage — CRITICAL:
-- You MUST cover EVERY topic, event, location, and analytical point mentioned in the transcript.
-- Do NOT summarize, condense, or omit any section of the transcript.
-- The narration script must be long enough to fully address all content in the transcript. \
-A 50,000-character transcript should produce a narration of comparable length and depth — \
-not a short summary.
-- If in doubt, expand with analysis rather than cut content.
+# 4. STRUCTURE
+4.1 Organise the material into distinct topic blocks — ONE topic per block, roughly 150-200 \
+spoken words each. Split a topic that runs longer rather than letting one block sprawl.
+4.2 Each block OPENS with its own strongest fact or claim, standing on its own. Do not open \
+a block by echoing the previous block's conclusion.
+4.3 Each block CLOSES on its own point and stops. No summary sentence.
+4.4 Mark every block boundary with <break time="1.0s"/> — that pause is what tells the \
+listener a new topic has started. Do NOT write section headings, titles, labels, chapter \
+markers, speaker names, or stage directions — every character you output is read aloud by a synthetic voice.
+4.5 A spoken transition between blocks, if used at all, is under six words.
 
-5. SSML Formatting — REQUIRED:
+# 5. CLARITY
+5.1 Gloss every technical or military term on FIRST use with one clause of plain English, \
+then use it freely: "a hit-to-kill interceptor — it destroys the target by ramming it, not \
+by exploding nearby". One gloss per term, never repeated.
+5.2 Expand every acronym on first use: OSINT (open-source intelligence), FPV \
+(first-person-view) drone, PAC-3 MSE.
+5.3 Use the exact, globally recognised English spellings and designations of that field's \
+authoritative sources — for people, organisations, places, products, systems, designations, \
+and metrics. Not informal or approximate terms.
+5.4 Any analogy must be recognisable to a general English-speaking audience with no \
+specialist background. If the analogy itself needs teaching, replace it with a plain \
+description.
+
+# 6. SPOKEN DELIVERY — THIS IS AUDIO
+The script is read aloud and broadcast as a podcast. The audience only HEARS it; they \
+cannot re-read a sentence or look at anything.
+6.1 NEVER reference the visual. No "as you can see", "this map", "the chart", "look at", \
+"pictured here", "on screen".
+6.2 ONE IDEA PER SENTENCE, subject early. Avoid stacked subordinate clauses and long \
+parenthetical asides — the ear loses them.
+6.3 ATTRIBUTION COMES FIRST, as it does in broadcast news: "According to Ukraine's General \
+Staff, ..." — not the claim followed by a trailing "..., according to ...".
+6.4 Write numbers and symbols so they are spoken correctly and held by ear: "seventeen \
+kilometers", "1.2 billion dollars", "thirty percent". No bare digits with unit symbols, no \
+"km", "%", "$", "approx.". At most two figures in one sentence; split the rest out.
+6.5 Say a name in full on first mention with its role ("Poland's operational command"), then \
+use the short form. Never introduce an unexplained name and leave it hanging.
+6.6 Contractions are fine and natural ("it's", "that's"). Written-only constructions \
+("the former ... the latter", "aforementioned", "cf.") are not.
+
+# 7. ENGAGEMENT
+7.1 STAKES BEFORE MECHANICS. One sentence on why it matters, then how it works.
+7.2 Give the two or three highest-stakes claims extra room and a hard landing sentence. \
+Move fast through the supporting detail.
+7.3 Rhetorical questions are allowed but rare — at most one per topic block, and only when \
+the script answers it immediately.
+7.4 Trust the audience. Do not spell out an inference an attentive viewer can make.
+
+# 8. TONE
+Confident, analytical, slightly urgent — a sharp explanatory YouTube essayist, not a dramatic \
+documentary narrator. Authoritative, objective, aimed at a global audience.
+
+# 9. SSML FORMATTING — REQUIRED
 - Wrap the entire text of each segment in <speak> ... </speak>.
-- Insert <break time="Xs"/> tags at natural spoken pauses. Use these guidelines:
-  - Between sentences: <break time="0.5s"/>
-  - Between paragraphs or topic shifts: <break time="1.0s"/>
-  - At major section transitions (e.g., hook → body, body → conclusion): <break time="1.5s"/>
+- Insert <break time="Xs"/> tags at natural spoken pauses:
+  - Between sentences that need a beat: <break time="0.5s"/> (not after every sentence)
+  - Between topic blocks: <break time="1.0s"/>
+  - At major transitions (hook into body, body into conclusion): <break time="1.5s"/>
 - Do NOT add breaks in the middle of a sentence.
-- Example: <speak>The announcement landed just after midnight. <break time="0.5s"/> Here is why that matters. <break time="1.0s"/> For the first time...</speak>\
+- Example: <speak>The crater should have been twenty meters wide. It was ten. \
+<break time="0.5s"/> That gap is the whole story. <break time="1.0s"/> The warhead ...</speak>\
 """
 
 # 定型の挨拶は config.NARRATION_OPENING を機械的に差し込む。モデルにも書かせると
 # 挨拶が二重になるので、書かないよう明示する（挨拶を空にした場合は指示ごと消える）。
 _OPENING_RULE = """
 
-6. The Opening Greeting Is Added For You — DO NOT WRITE ONE:
+# 10. THE OPENING GREETING IS ADDED FOR YOU — DO NOT WRITE ONE
 - A fixed spoken opening (greeting and presenter introduction) is prepended automatically \
 before your text.
 - Do NOT open with "hello", "welcome", "hi everyone", or any similar greeting.
@@ -114,19 +193,26 @@ Return a JSON array with a single element containing the full narration:
 
 _POSITION = {
     "first": (
-        "This is the OPENING section. Write the hook that starts the whole script. "
+        "This is the OPENING section. Its first two sentences are the hook. Use exactly ONE "
+        "of these three forms: (a) a stark numeric contradiction — \"The crater should have "
+        "been twenty meters wide. It was ten.\"; (b) a direct question this video answers; "
+        "(c) a stakes statement naming who is affected and how soon. "
+        "No preamble, no scene-setting, no throat-clearing before the hook. "
         "Do NOT write a conclusion or sign-off — the script continues after this section."
     ),
     "middle": (
         "This is a MIDDLE section of a continuous script. "
         "Do NOT write an opening hook and do NOT write a conclusion or sign-off. "
-        "Begin as a natural continuation of what came before, and end mid-argument "
+        "Do NOT summarise what earlier sections covered. "
+        "Open on this section's own strongest fact, and end mid-argument "
         "so the next section can pick up from you."
     ),
     "last": (
-        "This is the FINAL section. Do NOT write a new opening hook. "
-        "Continue from what came before and close the whole script with a "
-        "forward-looking conclusion."
+        "This is the FINAL section. Do NOT write a new opening hook, and do NOT walk back "
+        "through what earlier sections covered. Continue from what came before and close the "
+        "whole script with ONE forward-looking thought — what to watch next — followed by a "
+        "single genuine open question the audience can argue about in the comments. "
+        "Not a moralising line about the true nature of modern warfare."
     ),
 }
 
@@ -183,7 +269,8 @@ _MAX_ATTEMPTS = 3
 
 # ナレーション合計が transcript のこの割合を下回ったら生成失敗とみなす。
 #
-# プロンプトは「要約するな・全網羅せよ・同等の長さに」と要求している。
+# プロンプトは「事実は全網羅・重複だけ削れ・元の 60〜75% を狙え」と要求している
+# （対談の言い直しを畳む分、逐語の transcript より必ず短くなる）。
 # 分割ありの実測は 51%、短い入力では 116% に達する。
 # 30% では明らかな要約（38,410字→11,774字＝31%）を通してしまったため引き上げた。
 #
@@ -195,7 +282,7 @@ _MIN_RATIO = 0.45
 def _validate(paragraphs: list[dict], src_chars: int) -> str | None:
     """生成結果を検証する。問題なければ None、あれば理由の文字列を返す。
 
-    プロンプトは「要約するな・全網羅せよ」と要求しているので、
+    プロンプトは「事実は全網羅・削るのは重複だけ」と要求しているので、
     合計が入力より極端に短ければ途中で切れたか手を抜いたかのどちらか。
     """
     if not paragraphs:
@@ -285,7 +372,7 @@ def _build_prompt(max_chars: int, transcript: str) -> str:
     return _PROMPT_LIMITED.format(max_chars=max_chars) + "\n\n" + transcript
 
 
-def _split_transcript(text: str, size: int) -> list[str]:
+def split_transcript(text: str, size: int) -> list[str]:
     """transcript を size 文字程度の塊に分ける。文の途中では切らない。
 
     モデルは渡された transcript 全体を見て「どれだけ書くか」を決めるため、
@@ -327,7 +414,7 @@ def rewrite_file(
 
     # transcript が長いと、モデルは全体を見て「どれだけ書くか」を決めて圧縮する。
     # 塊に分けて独立に書かせ、結果を通し番号でつなぐ。
-    chunks = _split_transcript(text, max_chars)
+    chunks = split_transcript(text, max_chars)
     if len(chunks) > 1:
         print(f"  transcript を {len(chunks)} 分割して個別に台本化します"
               f"（1塊あたり約 {len(text) // len(chunks):,}字）")

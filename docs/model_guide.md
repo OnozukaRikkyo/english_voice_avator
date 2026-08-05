@@ -12,7 +12,8 @@
 | 定数 | モデル | プロバイダ |
 |------|--------|-----------|
 | `TRANSCRIBE_MODEL` | `gpt-transcribe` | OpenAI |
-| `REWRITE_MODEL` | `gemini-3.5-flash` | Gemini |
+| `REWRITE_MODEL` | `gpt-5.6-luna` | OpenAI |
+| `REVIEW_MODEL` | `gpt-5.6-luna` | OpenAI |
 | `TRANSLATE_MODEL` | `gemini-3.6-flash` | Gemini |
 
 ## 変え方は4通り
@@ -86,7 +87,8 @@ ffmpeg で時間分割して個別に送り、結果を連結します。
 
 | 工程 | 難易度 | 理由 |
 |---|---|---|
-| rewrite | 最難 | 軍事用語の正確さ・行間の戦略的洞察・独自視点・SSML・意味単位での分割を同時に要求 |
+| rewrite | 最難 | 用語の正確さ・行間の分析・冗長の削り込み・SSML・意味単位での分割を同時に要求 |
+| review | 最難 | 裏付けのない断定・煽り・片側だけの視点を見つける。安いモデルは問題を見つけられない |
 | transcribe | 高 | 固有名詞の聞き取り。誤ると後段すべてが誤った前提で動き、取り返しがつかない |
 | notebooklm | 中〜高 | 検索の使い分けと、一般読者が分からない語だけを選ぶ取捨選択 |
 | translate | 中 | 翻訳自体は機械的だが、NHK準拠の固有名詞表記と論調の維持が要る |

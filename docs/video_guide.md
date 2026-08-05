@@ -42,7 +42,7 @@ data/inbox/
 **引数は不要です。** `data/inbox/` を読み、ファイル名からプロジェクトを
 自動で作り、下の全工程を最初から最後まで通します。
 
-`convert → transcribe → rewrite → concat_narration → translate → heygen → concat_video`
+`convert → transcribe → rewrite → review → concat_narration → translate → heygen → concat_video`
 
 所要時間の目安（36分の音声での実測）:
 
@@ -78,7 +78,7 @@ data/{プロジェクト名}/
 
 ```bash
 ./run.sh --force                      # 全工程を作り直す
-./run_again.sh                        # 同上（引数不要・直近のプロジェクトが対象）
+./run.sh --again                      # 同上（引数不要・直近のプロジェクトが対象）
 ./run.sh --steps rewrite,translate    # 特定の工程だけやり直す
 ```
 

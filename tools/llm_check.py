@@ -25,6 +25,7 @@ from pipeline.config import (
 _SLOT_INFO = {
     "transcribe":         ("transcribe", "TRANSCRIBE_MODEL",         "./run.sh --model-transcribe MODEL"),
     "rewrite":            ("rewrite",    "REWRITE_MODEL",            "./run.sh --model-rewrite MODEL"),
+    "review":             ("review",     "REVIEW_MODEL",             "./run.sh --model-review MODEL"),
     "translate":          ("translate",  "TRANSLATE_MODEL",          "./run.sh --model-translate MODEL"),
     "notebooklm":         ("notebooklm", "NOTEBOOKLM_PROMPT_MODEL",  "./gen_notebooklm_prompt.sh --model-notebooklm MODEL"),
 }

@@ -58,21 +58,21 @@ def check() -> tuple[list[str], list[str]]:
 
         # Warning: project slug should be ASCII-safe
         # Existing non-ASCII projects cannot be renamed, so this is non-blocking.
-        # 新規プロジェクトは ./run_audio.sh <audio_file> で作る
+        # 新規プロジェクトは ./run.sh <audio_file> で作る
         try:
             project.encode("ascii")
         except UnicodeEncodeError:
             warnings.append(
                 f"[NON-ASCII] data/{project}/ — slug has non-ASCII chars. "
-                f"新規プロジェクトは ./run_audio.sh <audio_file> で作ってください"
+                f"新規プロジェクトは ./run.sh <audio_file> で作ってください"
             )
 
         # Hard violation: part files must live in stage/parts/, not stage/ directly
-        for stage in ("narration", "video"):
+        for stage in ("draft", "narration", "video"):
             stage_path = project_dir / stage
             if not stage_path.exists():
                 continue
-            ext = "txt" if stage == "narration" else "mp4"
+            ext = "mp4" if stage == "video" else "txt"
             for f in stage_path.glob(f"*_part*.{ext}"):
                 violations.append(
                     f"[MISPLACED] {f.relative_to(ROOT)} — "
