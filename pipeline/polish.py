@@ -306,15 +306,32 @@ def _facts_in(text: str) -> set[str]:
             | set(defects.proper_nouns(body)))
 
 
+# "one step further" の "one" のような慣用句を数として数えると、
+# 言い回しを変える修正がすべて「数が消えた」で棄却される（実測）。
+# 単独の "one" だけ外す。two 以上は "three people were injured" のように
+# 実際の数であることが多い。
+_IDIOMATIC = {"one"}
+
+
 def check_kept(old: str, new: str) -> str | None:
     """old にあって new から消えた数・固有名詞を返す。無ければ None。
 
     モデルの自己申告より先にこれを通す。数と名前は目視で消えたかどうか
     判定できるので、判断をモデルに任せる理由がない。
+
+    ただし「消えた」と「直した」は違う。綴りの統一（Balti Rossi → Balzi
+    Rossi）は固有名詞が1つ消えたように見えるが、ほぼ同じ綴りのものが
+    new にあれば、それは修正であって欠落ではない。
     """
-    lost = _facts_in(old) - _facts_in(new)
-    # 重複表現を削る修正では、同じ語が別の場所に残っていることがある。
-    # ここでは「この組の中で消えた」ことだけを見る。
+    kept = _facts_in(new)
+    lost = set()
+    for item in _facts_in(old) - kept:
+        if item in _IDIOMATIC:
+            continue
+        # ほぼ同じ表記が new にあるなら、綴りの統一とみなす
+        if any(defects._edit_distance(item.lower(), k.lower()) <= 2 for k in kept):
+            continue
+        lost.add(item)
     return f"消えた要素: {', '.join(sorted(lost))}" if lost else None
 
 

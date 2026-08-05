@@ -191,3 +191,28 @@ def test_remaining_defects_are_counted_after_the_last_repair(monkeypatch, tmp_pa
     report = (tmp_path / "out_defects.md").read_text(encoding="utf-8")
     assert "なし。" in report            # 修正後に数え直して0件
     assert calls["detect"] == 2          # 検出で始まり、修正後にもう一度
+
+
+def test_spelling_correction_is_not_a_loss():
+    """綴りの統一は固有名詞が消えたように見えるが、修正であって欠落ではない。
+
+    実測: Balti Rossi → Balzi Rossi の修正が2周とも機械照合で棄却され、
+    表記揺れが最後まで直らなかった。
+    """
+    assert polish.check_kept("Following the Balti Rossi bombing, the city reacted.",
+                             "Following the Balzi Rossi bombing, the city reacted.") is None
+
+
+def test_a_genuinely_dropped_name_is_still_caught():
+    assert polish.check_kept("Following the Balzi Rossi bombing, the city reacted.",
+                             "Following the bombing, the city reacted.")
+
+
+def test_idiomatic_one_is_not_counted_as_a_figure():
+    """実測: "follow the money one step further" の言い換えが「one が消えた」で棄却された。"""
+    assert polish.check_kept("If we follow the money one step further, the debt grows.",
+                             "The debt grows further down the chain.") is None
+
+
+def test_a_real_quantity_is_still_caught():
+    assert polish.check_kept("Three people were injured.", "People were injured.")
