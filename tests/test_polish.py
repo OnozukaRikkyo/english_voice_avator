@@ -148,3 +148,46 @@ def test_independent_edits_both_apply():
     ])
     assert "First line here. Second line there." in got
     assert len(applied) == 2 and not rejected
+
+
+def test_hedging_fix_is_not_treated_as_a_loss(monkeypatch):
+    """A が「断定を可能性に直せ」と言った修正を、C が「弱められた」と棄却していた。
+
+    実測で12件。A の意図した修正を C が潰す自家中毒で、直せない欠陥が
+    残存リストに積み上がっていた。修正の理由を C に渡して区別させる。
+    """
+    seen = {}
+
+    def fake(model, prompt, schema, **k):
+        if "Defects" in prompt:
+            return json.dumps([{"old": "Officials called it contained.",
+                                "new": "Officials may have called it contained.",
+                                "why": "断定を可能性に直しました"}])
+        seen["verify"] = prompt
+        return json.dumps([{"ok": True, "why": "意図どおりです"}])
+
+    monkeypatch.setattr(polish.llm, "generate_json", fake)
+    polish.repair(SCRIPT, [defects.Defect("ATTRIBUTION", "q", "断定です")], "m")
+    assert "reason for this edit" in seen["verify"]
+    assert "断定を可能性に直しました" in seen["verify"]
+
+
+def test_remaining_defects_are_counted_after_the_last_repair(monkeypatch, tmp_path):
+    """記録の「残存欠陥」が最後の修正より前の検出だと、直した分まで残存に並ぶ。"""
+    calls = {"detect": 0}
+
+    def fake_detect(script, transcript, model):
+        calls["detect"] += 1
+        return [] if calls["detect"] > 1 else [defects.Defect("X", "Officials called it contained.", "d")]
+
+    monkeypatch.setattr(polish, "detect", fake_detect)
+    monkeypatch.setattr(polish, "repair",
+                        lambda s, f, m: (s.replace("contained", "under control"),
+                                         [{"result": "適用", "old": "a", "new": "b", "why": "w"}]))
+    src = tmp_path / "ep_full.txt"
+    src.write_text(SCRIPT * 30, encoding="utf-8")
+    polish.polish_file(src, tmp_path / "out_full.txt", "", model="m")
+
+    report = (tmp_path / "out_defects.md").read_text(encoding="utf-8")
+    assert "なし。" in report            # 修正後に数え直して0件
+    assert calls["detect"] == 2          # 検出で始まり、修正後にもう一度

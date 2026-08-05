@@ -206,10 +206,18 @@ def name_variants(text: str) -> list[Defect]:
                 continue
             done.add((a, b))
             if 0 < _edit_distance(a.lower(), b.lower()) <= 2:
-                keep, drop = (a, b) if names[a] >= names[b] else (b, a)
-                out.append(Defect("NAME VARIANT", drop,
-                                  f"「{a}」({names[a]}回) と「{b}」({names[b]}回) が混在しています。",
-                                  f"多いほうの「{keep}」に統一してください。"))
+                detail = f"「{a}」({names[a]}回) と「{b}」({names[b]}回) が混在しています。"
+                if names[a] == names[b]:
+                    # 同数なら頻度では決められない。綴りの正解は素材にしかない。
+                    fix = ("どちらか一方に統一してください（文字起こし自体が割れている\n"
+                           "  ことがあります。その場合は台本内で揃えたうえで、"
+                           "factcheck 表の綴り確認に委ねます）。")
+                    drop = b
+                else:
+                    keep, drop = (a, b) if names[a] > names[b] else (b, a)
+                    fix = (f"多いほうの「{keep}」に統一してください"
+                           "（文字起こしが別の綴りを示していれば、そちらを優先）。")
+                out.append(Defect("NAME VARIANT", drop, detail, fix))
     return out
 
 

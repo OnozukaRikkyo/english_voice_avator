@@ -119,7 +119,9 @@ the mechanism, the people — and a chapter boundary is where you stop developin
 start another, typically every three to five blocks. At a chapter boundary, give the \
 listener one or two sentences of orientation naming what the argument has just established and what the next \
 chapter takes up: "That is the money side. Now, the people it lands on." This is a signpost, \
-not a recap — it names the turn, it does not re-explain what was said. If you cannot see \
+not a recap — it names the turn, it does not re-explain what was said. Say it in the terms \
+of the STORY, never in the terms of the script: "now the fuel" is a signpost, "the answer to \
+the central question continues" is an essay reading out its own table of contents. If you cannot see \
 what comes next, name only where the argument has arrived.
 4.3 Mark a block boundary with <break time="1.0s"/> and a chapter boundary with \
 <break time="1.5s"/>. Between ordinary blocks a spoken transition is under six words or \

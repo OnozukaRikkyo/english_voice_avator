@@ -121,30 +121,42 @@ If the opening question itself is absent, report THAT alone: the forward referen
 closing return depend on it, and reporting them too would produce edits that point at
 nothing.
 
-# 4. OVER-EXPLANATION
+# 4. META-NARRATION
+The script talking about its own structure instead of its subject. Two kinds:
+- SELF-REFERENCE the ear cannot follow: "the area described at the opening", "as I
+  mentioned earlier", "in the previous section". A listener cannot look back. Repeat the
+  figure or the fact instead.
+- TABLE-OF-CONTENTS NARRATION: "the answer to the opening question continues", "this
+  brings us closer to answering that central question", "the final synthesis will
+  connect...". A forward reference is supposed to point at the STORY the listener is
+  waiting for — the restaurant, the fire, the missing money — not at the script's own plan.
+  Allow at most TWO such structural references in the whole script; report every one beyond
+  that, and report any that names "the question" rather than the thing itself.
+
+# 5. OVER-EXPLANATION
 An inline gloss on a word a general adult listener already knows — "a stadium, a venue
 where matches are played", "VIPs, or very important people", "a logistics hub, a site that
 stores and moves supplies". The test is whether ordinary journalism uses the word without
 explaining it. Genuine specialist terms — loan-loss provisions, expected goals, a
 hit-to-kill interceptor, a p-value — keep their gloss.
 
-# 5. ATTRIBUTION
+# 6. ATTRIBUTION
 Judge these from the script alone; they need no transcript.
 - Wording implying the programme has its own reporters or private informants ("our
   sources", "we have learned").
 - A future event stated as certain rather than as a possibility.
 - An accusation against a named person or organisation with no attribution anywhere in the
   script.
-Anything that requires comparing the script against the transcript belongs in section 6,
+Anything that requires comparing the script against the transcript belongs in section 7,
 not here. Report each defect once, under one category only.
 
-# 6. GROUNDING (only if a transcript section is supplied below)
+# 7. GROUNDING (only if a transcript section is supplied below)
 A fact, figure, date, name or causal claim in the script that the transcript does not
 support, or hedging present in the transcript that the script dropped.
 
 Return a JSON array. Each element:
-- "category": one of REPEATED MOVE, BROKEN SENTENCE, MISSING STRUCTURE, OVER-EXPLANATION,
-  ATTRIBUTION, GROUNDING
+- "category": one of REPEATED MOVE, BROKEN SENTENCE, MISSING STRUCTURE, META-NARRATION,
+  OVER-EXPLANATION, ATTRIBUTION, GROUNDING
 - "quote": the exact text from the script. For a MISSING STRUCTURE absence, quote the
   sentence the new line should follow.
 - "detail": one sentence in JAPANESE saying what is wrong.
@@ -201,7 +213,16 @@ has three fields — "old", "new" and "why" — and no other content is permitte
    consequence flatly or contrasting it with a second figure. Replacements must differ from
    each other, or you have simply created the next catchphrase.
 4. For missing structure, insert one or two sentences at the position given, and leave the
-   surrounding sentences untouched.
+   surrounding sentences untouched. A forward reference names the THING the listener is
+   waiting for, not the script's plan: "That restaurant on Kudrinskaya Square is still
+   waiting" — never "the answer to the central question continues". Vary every one you
+   write; two identical-sounding callbacks are worse than one.
+4a. REMOVING A PERSONAL REACTION MEANS DELETING THE SENTENCE. Do not launder it into an
+   impersonal husk: "I assumed I had misread it" must not become "That range initially
+   appeared easy to misread", which says nothing. Cut the sentence, or replace it with a
+   statement that carries actual information.
+4b. NEVER refer to the script's own structure. The listener cannot look back at "the area
+   described at the opening" — repeat the figure.
 5. For a broken sentence, restore the meaning the transcript supports. Do not invent
    facts. If the transcript shows the script's figure, date or name is simply WRONG, correct
    it to the transcript's version and say so in "why" — rule 2 protects the source's facts,
@@ -239,18 +260,26 @@ _PATCH_SCHEMA = {
 _VERIFY_PROMPT = """\
 Check each edit for meaning that went missing. You are not judging style.
 
-For every pair, ask:
-1. Is every figure, date, proper noun and job title in "old" still present in "new"?
-2. Did the strength of the claim change — a hedged statement made certain, or a stated
-   fact softened into speculation?
-3. Was an attribution or a hedge ("reportedly", "according to", "unconfirmed") dropped?
-4. Does "new" read correctly on its own, as a complete sentence?
+Each edit carries the reason it was made. **Judge the edit against that reason.** An edit
+that does what it was asked to do is correct even when the result reads as a weaker claim:
+if the defect was that the script stated a possibility as a fact, then turning "had to move"
+into "may have to move" is the FIX, not a loss. Rejecting it would restore the defect.
+
+Report a failure only when something went missing that nobody asked to remove:
+1. A figure, date, proper noun or job title in "old" that is gone from "new".
+2. A change in the claim's strength that the reason does NOT call for — a hedge added where
+   the defect was about repetition, or a hedge REMOVED so that speculation now reads as
+   settled fact.
+3. An attribution or hedge ("reportedly", "according to", "unconfirmed") dropped without a
+   reason that asked for it.
+4. "new" does not carry meaning on its own. A grammatical sentence that says nothing is a
+   failure: "That range initially appeared easy to misread" is what remains when a personal
+   reaction is de-personalised instead of deleted. If "new" would puzzle a listener hearing
+   it once, reject it.
 
 Return a JSON array with one element per pair, in the same order:
-- "ok": true if the edit preserves meaning, false if it must go back for rework
+- "ok": true if the edit does what its reason asked without collateral loss
 - "why": one sentence in JAPANESE. When ok is false, say exactly what was lost.
-Judge only what is in front of you. An edit that deliberately removes a phrase the defect
-list called false ("our sources") is correct, as long as the claim's certainty is unchanged.
 """
 
 _VERIFY_SCHEMA = {
@@ -381,8 +410,10 @@ def repair(script: str, found: list[defects.Defect], model: str) -> tuple[str, l
 
     # C-2 意味の検証。
     if survived:
-        pairs = "\n\n".join(f'{i}. old: "{p["old"]}"\n   new: "{p["new"]}"\n   why: {p.get("why","")}'
-                            for i, p in enumerate(survived, 1))
+        pairs = "\n\n".join(
+            f'{i}. reason for this edit: {p.get("why", "(not stated)")}\n'
+            f'   old: "{p["old"]}"\n   new: "{p["new"]}"'
+            for i, p in enumerate(survived, 1))
         raw = llm.generate_json(model, _VERIFY_PROMPT + "\n\n# Edits\n\n" + pairs,
                                 _VERIFY_SCHEMA, schema_name="verdicts", effort="high")
         verdicts = json.loads(raw or "[]")
@@ -435,8 +466,10 @@ def polish_file(src: Path, dst: Path, transcript: str, model: str = REVIEW_MODEL
     rounds: list[dict] = []
     found: list[defects.Defect] = []
 
+    # 検出で始めて検出で終わる。修正のあとに数え直さないと、記録に残る
+    # 「残存欠陥」が最後の修正より前の姿になる（直した分まで残存として並ぶ）。
+    found = detect(script, transcript, model)
     for i in range(1, POLISH_ROUNDS + 1):
-        found = detect(script, transcript, model)
         print(f"    第{i}周: 欠陥 {len(found)} 件"
               + (f"（{', '.join(sorted({d.category for d in found}))}）" if found else ""))
         if not found:
@@ -448,6 +481,7 @@ def polish_file(src: Path, dst: Path, transcript: str, model: str = REVIEW_MODEL
                        "rejected": len(patches) - applied, "patches": patches})
         if applied == 0:
             break                      # 何も当たらないなら次の周も当たらない
+        found = detect(script, transcript, model)
 
     # 直した結果に決定論的な仕上げをかける（間の重複はここで潰す）
     script = ssml.merge_breaks(script)
