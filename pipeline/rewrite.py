@@ -33,11 +33,13 @@ The source is a spoken conversation, so it is repetitive, slow to reach the poin
 of unexplained jargon. Your job is to keep every fact and remove every restatement.
 
 TWO NUMBERS GOVERN EVERYTHING YOU WRITE:
-- LENGTH: the narration must land at 60-75 percent of the source passage's character count. \
+- LENGTH: the narration must land at 65-80 percent of the source passage's character count. \
 This is a FLOOR as much as a ceiling — a passage of 7,000 characters must produce roughly \
-4,200-5,200 characters. If your draft comes out near half the source or less, you have \
+4,600-5,600 characters. If your draft comes out near half the source or less, you have \
 summarized instead of rewritten: go back and carry the facts you dropped. Tight prose that \
-omits information is a failure, not a virtue.
+omits information is a failure, not a virtue. The room in this range is for the listener's \
+orientation — signposts, the host's voice, a question that breaks a dense run — never for \
+restating a point you have already made.
 - FACTS: one hundred percent. Every topic, number, date, name, and point in the passage \
 appears in the narration. What gets cut is repetition, never information.
 
@@ -88,7 +90,7 @@ government to make agonizing choices."). Say it once, then vary or move on.
 source passage. Do not drop a section. Compression here means deleting REPETITION — never \
 deleting INFORMATION.
 2.2 Length must come from carrying more facts, not from saying one fact more ways — the \
-60-75 percent target at the top of this prompt is reached by keeping information, never by \
+65-80 percent target at the top of this prompt is reached by keeping information, never by \
 padding. The per-block length in section 4 governs ONE block, never the whole output.
 2.3 PRESERVE ALL HEDGING. Where the source says "may", "reportedly", "appears to", "some \
 analysts believe", or "unconfirmed", keep that uncertainty in English. Never promote \
@@ -354,8 +356,11 @@ one <speak> wrapper and topic blocks are separated by <break time="1.0s"/> alone
 
 # ナレーション合計が transcript のこの割合を下回ったら生成失敗とみなす。
 #
-# プロンプトは「事実は全網羅・重複だけ削れ・元の 60〜75% を狙え」と要求している
+# プロンプトは「事実は全網羅・重複だけ削れ・元の 65〜80% を狙え」と要求している
 # （対談の言い直しを畳む分、逐語の transcript より必ず短くなる）。
+# 目標は当初 60〜75% だったが、聞き手のための要素（章のサインポスト・ホストの一人称・
+# 密な説明を割る問い）を入れた実測が 81% になったため実態に合わせた。
+# 元の指摘は「同じ主張の繰り返しで離脱する」であり、これらは離脱を防ぐ側の要素である。
 # 分割ありの実測は 51%、短い入力では 116% に達する。
 # 30% では明らかな要約（38,410字→11,774字＝31%）を通してしまったため引き上げた。
 #
