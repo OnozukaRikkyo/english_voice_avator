@@ -94,6 +94,7 @@ enforced by `tools/check_design.py`.
 ./run.sh                            # everything in data/inbox/
 ./run.sh path/to/audio.m4a          # one specified file
 ./run.sh --no-video                 # stop before video generation
+./run.sh --again                    # redo the latest project (implies --force)
 ./run.sh --steps convert,transcribe # specific steps
 ./run.sh --project my_project       # one project
 ./run.sh --force                    # ignore existing output and rebuild
@@ -124,7 +125,7 @@ conversion step is involved.
 Per-run override without editing config:
 
 ```bash
-./run.sh --model-rewrite gpt-5.6-luna
+./run.sh --model-rewrite gemini-3.6-flash
 ./run.sh --model-transcribe gemini-3.6-flash
 ./tool_llm_check.sh --live        # which provider each step resolves to + connectivity
 ```

@@ -105,7 +105,7 @@ cp your_doc.docx data/senario_jp/   # 1. 置く（.docx / .pdf）
 ```bash
 ./run.sh --steps transcribe            # 特定の工程だけ動かす
 ./run.sh --force                       # 既存の出力を無視して作り直す
-./run.sh --provider openai             # 全工程を ChatGPT に切り替える
+./run.sh --provider openai             # 全工程を OpenAI に切り替える
 ./run.sh --project スラッグ名          # 特定プロジェクトだけ処理する
 ./run.sh --again                       # 既存を上書きして作り直す（引数不要）
 ./run.sh --no-video                    # 動画を作らず台本と日本語訳まで
@@ -125,7 +125,7 @@ push すると GitHub Actions でも走ります。どちらも API を呼ばな
 
 | 接頭辞 | 意味 |
 |---|---|
-| `run` | パイプライン全工程を実行する |
+| `run` | パイプラインを実行する |
 | `step_` | 単一工程だけを実行する（全プロジェクト対象） |
 | `tool_` | パイプライン外の確認・調査 |
 | `gen_` | 生成物を作る（NotebookLM プロンプト） |

@@ -32,7 +32,7 @@
 ### 2. 1工程だけ（この実行だけ）
 
 ```bash
-./run.sh --model-rewrite gpt-5.6-luna
+./run.sh --model-rewrite gemini-3.6-flash
 ./run.sh --model-transcribe gemini-3.6-flash
 ./gen_notebooklm_prompt.sh --model-notebooklm gemini-3.6-flash
 ```
@@ -40,7 +40,7 @@
 プリセットと併用でき、個別指定が勝ちます。
 
 ```bash
-./run.sh --provider openai --model-rewrite gemini-3.5-flash
+./run.sh --provider openai --model-rewrite gemini-3.6-flash
   → rewrite だけ Gemini、他は OpenAI
 ```
 

@@ -44,19 +44,20 @@ data/inbox/
 
 `convert → transcribe → rewrite → review → concat_narration → translate → heygen → concat_video`
 
-所要時間の目安（36分の音声での実測）:
+所要時間の目安（49分の音声・8分割での実測）:
 
 | 工程 | 目安 |
 |---|---|
-| `convert` | 数秒 |
-| `transcribe` | 1分弱 |
-| `rewrite` | 数分（台本を分割した数だけAPIを呼ぶ） |
+| `convert` | 20秒 |
+| `transcribe` | 1分 |
+| `rewrite` | 15分前後（分割した塊ごとにAPIを呼ぶ・作り直し込み） |
+| `review` | 20分前後（台本パートごとにAPIを呼ぶ） |
 | `concat_narration` | 即時 |
-| `translate` | 1分程度 |
-| `heygen` | **最も長い**。動画1本あたり数分 × 10本前後 |
+| `translate` | 1〜2分 |
+| `heygen` | **最も長い**。動画1本あたり数分 × パート数 |
 | `concat_video` | 数十秒 |
 
-大半は動画生成です。音声の長さにおおむね比例します。
+動画を除くと約30分、いずれも音声の長さにおおむね比例します。
 
 できあがるもの:
 
@@ -65,7 +66,11 @@ data/{プロジェクト名}/
   narration/*_full.txt     ← 英語ナレーション台本（SSML）
   translation/*_ja.txt     ← その日本語訳
   video/*.mp4              ← 結合済みのアバター動画
+  draft/parts/*_review.md  ← 台本のどこを報道基準で直したかの記録
 ```
+
+録音・公開の前に `*_review.md` の high 指摘に目を通してください
+（review 工程の説明は `user_guide.md`）。
 
 ---
 
