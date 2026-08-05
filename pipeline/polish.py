@@ -63,8 +63,24 @@ and every check below applies unchanged whatever the subject. Judge the script a
 own subject matter, not against the examples used here to illustrate each check.
 Report defects. Do NOT rewrite anything: this pass produces a list, nothing else.
 
-Quote the offending text EXACTLY as it appears — a later pass finds your quote by exact
-string match, so a paraphrased or re-punctuated quote is useless.
+# What You Are Given
+Two blocks are appended below, each between named markers. The block between
+"--- transcript ---" and "--- end ---" is the SOURCE and is never a defect; it exists only
+to check the script against. The block between "--- script ---" and "--- end ---" is the
+script under inspection, and every quote you return must come from it. The transcript block
+may be absent.
+
+# How To Quote
+Copy the offending text EXACTLY as it appears in the script. A later pass locates it by
+exact string match on the decoded JSON string, so ordinary punctuation and spacing are
+fine, but a paraphrase or re-punctuation is useless. Quote enough that the text occurs
+exactly once — usually one full sentence, and where a sentence itself recurs, extend the
+quote into the neighbouring sentence until it is unique. If no unique quote is possible,
+say so in "detail" and report the defect once rather than several times.
+
+Report ONLY failures. A check that passes produces no element at all; do not report that
+something is fine. Return one element per instance: if a habit occurs four times, return
+four elements quoting the four instances, each naming the shared habit in "detail".
 
 # 1. REPEATED RHETORICAL MOVE
 Repetition of a device, not of words. If the narrator performs the same MOVE three or more
@@ -89,14 +105,21 @@ A sentence that does not survive on its own. Four kinds, whatever the subject:
   longer makes.
 
 # 3. MISSING STRUCTURE
-Answer each of these with yes or no and quote the evidence, or report the absence:
+A chapter is a distinct strand of the story — one subject developed over several
+paragraphs, ending where the script stops developing it and takes up another. A
+<break time="1.5s"/> usually marks one. Identify the chapters first, then check:
 - Does the opening pose a question about the most surprising event in the script, within
   roughly the first 150 words?
 - Does each chapter open with a spoken signpost saying where the argument has arrived?
-- Does each middle chapter END with a forward reference to that opening question — a line
-  telling the listener the payoff is still coming? Report the absence separately for EACH
-  chapter that lacks one, and say which sentence the missing line should follow.
+- Does each chapter before the last END with a forward reference to that opening question
+  — a line telling the listener the payoff is still coming?
 - Does the ending return to the opening question and close it?
+Report only what is MISSING, one element per missing item. Since missing text cannot be
+quoted, set "quote" to the existing sentence the new line should follow (or, for a missing
+opening question, the script's first sentence) and say in "fix" what to insert there.
+If the opening question itself is absent, report THAT alone: the forward references and the
+closing return depend on it, and reporting them too would produce edits that point at
+nothing.
 
 # 4. OVER-EXPLANATION
 An inline gloss on a word a general adult listener already knows — "a stadium, a venue
@@ -105,11 +128,15 @@ stores and moves supplies". The test is whether ordinary journalism uses the wor
 explaining it. Genuine specialist terms — loan-loss provisions, expected goals, a
 hit-to-kill interceptor, a p-value — keep their gloss.
 
-# 5. ATTRIBUTION AND HEDGING
+# 5. ATTRIBUTION
+Judge these from the script alone; they need no transcript.
 - Wording implying the programme has its own reporters or private informants ("our
   sources", "we have learned").
-- An unverified report, a prediction, or one party's claim stated as settled fact.
-- An accusation against a named person or organisation with no attribution.
+- A future event stated as certain rather than as a possibility.
+- An accusation against a named person or organisation with no attribution anywhere in the
+  script.
+Anything that requires comparing the script against the transcript belongs in section 6,
+not here. Report each defect once, under one category only.
 
 # 6. GROUNDING (only if a transcript section is supplied below)
 A fact, figure, date, name or causal claim in the script that the transcript does not
@@ -147,12 +174,18 @@ edits that fix those defects.
 
 # The Only Output Allowed
 
-Pairs of old text and new text. NEVER return the whole script or a rewritten section.
+Edits, and nothing else. NEVER return the whole script or a rewritten section. Each edit
+has three fields — "old", "new" and "why" — and no other content is permitted.
 - "old" must be copied from the script CHARACTER FOR CHARACTER. It is located by exact
   string match; if it differs by a comma the edit is discarded. Quote enough context that
   the text appears exactly once in the script — usually one full sentence.
-- "new" is the replacement. To insert a line, set "new" to the old sentence followed by the
-  new one. To delete, set "new" to the empty string.
+- "new" is the replacement, written as it will read in the script. To insert after a
+  sentence, set "new" to that sentence plus the new one; to insert before it, set "new" to
+  the new sentence plus that one. Separate sentences with a single space. To delete, set
+  "new" to the empty string.
+- Every "old" must match the script AS GIVEN TO YOU. Edits are applied to the original
+  text, so two edits must never overlap: if one sentence carries two defects, fix both in
+  a single edit.
 
 # Rules
 
@@ -163,16 +196,27 @@ Pairs of old text and new text. NEVER return the whole script or a rewritten sec
    MATTER — a unit ("thousand square meters"), a name, a figure that genuinely recurs —
    leave every instance alone and skip it. Only a narrator's verbal habit needs fixing.
    For a repeated phrase or a repeated rhetorical move that IS a habit: leave at most TWO
-   instances and
-   change the rest. Change the FUNCTION, not just the wording — if the move was astonishment
+   instances — keep the FIRST two occurrences and change every later one. Change the FUNCTION, not just the wording — if the move was astonishment
    at a number, the replacement should do something else entirely, such as stating the
    consequence flatly or contrasting it with a second figure. Replacements must differ from
    each other, or you have simply created the next catchphrase.
 4. For missing structure, insert one or two sentences at the position given, and leave the
    surrounding sentences untouched.
-5. For a broken sentence, restore the meaning the transcript supports. Do not invent facts.
-6. Preserve SSML: the only tags are <speak> and <break time="Xs"/>, never two in a row,
-   never inside a sentence. Every number in speech is spelled as words.
+5. For a broken sentence, restore the meaning the transcript supports. Do not invent
+   facts. If the transcript shows the script's figure, date or name is simply WRONG, correct
+   it to the transcript's version and say so in "why" — rule 2 protects the source's facts,
+   not the script's mistakes.
+6. These apply to the text you write in "new", not to the rest of the script.
+   - SPOKEN WORDS carry no digits. Every quantity, year, score, sum or designation you
+     write is spelled out: "twenty twenty-five", "S-four-hundred". This is about FORM, not
+     value — "2025" becomes "twenty twenty-five", never a different year.
+   - SSML TAGS keep their digits, because they are not spoken: a pause is written
+     <break time="1.0s"/> or <break time="1.5s"/>, exactly like the ones already in the
+     script. Copy the form; do not spell the seconds out.
+   - Tags allowed: <speak> and <break time="Xs"/>. Never two breaks in a row, never one
+     inside a sentence.
+   - Digits elsewhere in the script are not your concern; leave them unless the defect list
+     names them.
 
 Return a JSON array. Each element: "old", "new", "why" (one sentence in JAPANESE).
 """
@@ -256,20 +300,35 @@ def apply_patches(text: str, patches: list[dict]) -> tuple[str, list[dict], list
       - old が2箇所以上ある（どちらを直すのか決められない）
     どちらも「黙って当てない」ほうが安全である。取りこぼしは次の周で拾える。
     """
+    original = text
     applied, rejected = [], []
+    spans: list[tuple[int, int]] = []      # 原文のどこを既に書き換えたか
+
     for p in patches:
         old, new = p.get("old", ""), p.get("new", "")
         if not old:
             rejected.append({**p, "reason": "old が空です"})
             continue
-        n = text.count(old)
+        n = original.count(old)
         if n == 0:
             rejected.append({**p, "reason": "old が原文に見つかりません（引用が不正確）"})
             continue
         if n > 1:
             rejected.append({**p, "reason": f"old が {n} 箇所にあり、対象を特定できません"})
             continue
+        # 位置は必ず原文で測る。適用済みの本文で数えると、先の置換で
+        # 文字数が変わったぶんだけ範囲がずれ、重なりを見落とす。
+        i = original.index(old)
+        span = (i, i + len(old))
+        overlap = next(((a, b) for a, b in spans if a < span[1] and span[0] < b), None)
+        if overlap:
+            rejected.append({**p, "reason": "先の修正と範囲が重なっています"})
+            continue
+        if text.count(old) != 1:
+            rejected.append({**p, "reason": "先の修正で原文が変わり、対象を特定できません"})
+            continue
         text = text.replace(old, new, 1)
+        spans.append(span)
         applied.append(p)
     return text, applied, rejected
 

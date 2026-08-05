@@ -126,3 +126,25 @@ def test_verifier_rejection_blocks_the_edit(monkeypatch):
     monkeypatch.setattr(polish.llm, "generate_json", fake)
     got, log = polish.repair(SCRIPT, [defects.Defect("X", "y", "z")], "m")
     assert got == SCRIPT and log[0]["result"] == "棄却"
+
+
+def test_overlapping_edits_are_rejected():
+    """重なる修正は適用順で結果が変わる。2つ目を当てずに棄却する。"""
+    text = "<speak>The bank absorbed the loss quietly.</speak>"
+    got, applied, rejected = polish.apply_patches(text, [
+        {"old": "The bank absorbed the loss quietly.",
+         "new": "The bank reportedly absorbed the loss."},
+        {"old": "absorbed the loss", "new": "wrote off the loss"},
+    ])
+    assert "reportedly" in got and "wrote off" not in got
+    assert len(applied) == 1 and "重なって" in rejected[0]["reason"]
+
+
+def test_independent_edits_both_apply():
+    text = "<speak>First sentence here. Second sentence there.</speak>"
+    got, applied, rejected = polish.apply_patches(text, [
+        {"old": "First sentence here.", "new": "First line here."},
+        {"old": "Second sentence there.", "new": "Second line there."},
+    ])
+    assert "First line here. Second line there." in got
+    assert len(applied) == 2 and not rejected
