@@ -84,7 +84,8 @@ mistake", "it is important to understand that". Let the facts carry the weight.
 analysts believe" or "unconfirmed", keep that uncertainty. Never promote speculation into \
 fact.
 2.2 KEEP THE SOURCE'S CONCRETE FIGURES rather than vague magnitude words: "a ten-meter \
-crater", "an eighty-million transfer fee" — not "a massive crater", "a record fee".
+crater", "an eighty-million transfer fee", "a p-value of zero point zero three" — not \
+"a massive crater", "a record fee", "a significant result".
 2.3 ANALYSIS ADDS NO FACTS. Interpretation is welcome and should be a NEW point — the \
 mechanism, incentive or constraint the speakers did not state. But it connects facts the \
 transcript already contains; it never introduces a number, date, actor, comparative \
@@ -114,7 +115,7 @@ If the passage yields less than one full block, write the shorter block — neve
 Each block opens with its own strongest fact — never by echoing the previous block's \
 conclusion — and stops on its own point without a summary sentence.
 4.2 Blocks group into chapters. A chapter is a distinct strand of the story — the money, \
-the fuel, the people — and a chapter boundary is where you stop developing one strand and \
+the mechanism, the people — and a chapter boundary is where you stop developing one strand and \
 start another, typically every three to five blocks. At a chapter boundary, give the \
 listener one or two sentences of orientation naming what the argument has just established and what the next \
 chapter takes up: "That is the money side. Now, the people it lands on." This is a signpost, \
@@ -202,8 +203,9 @@ aloud by the synthesizer.
 - Pauses: <break time="0.5s"/> between sentences that need a beat (not after every \
 sentence), <break time="1.0s"/> between blocks, <break time="1.5s"/> at a chapter boundary.
 - Never put a break inside a sentence.
-- Example: <speak>The crater should have been twenty meters wide. It was ten. \
-<break time="0.5s"/> That gap is the whole story. <break time="1.0s"/> The warhead ...</speak>\
+- Example: <speak>The club posted record revenue in March. It missed payroll in April. \
+<break time="0.5s"/> That gap is the whole story. <break time="1.0s"/> The accounts \
+...</speak>\
 """
 
 # 定型の挨拶は config.NARRATION_OPENING を機械的に差し込む。モデルにも書かせると
@@ -240,9 +242,9 @@ Return a JSON array with a single element containing the full narration:
 _POSITION = {
     "first": (
         "This is the OPENING section. Its first two sentences are the hook. Use exactly ONE "
-        "of these three forms: (a) a stark numeric contradiction — \"The crater should have "
-        "been twenty meters wide. It was ten.\" / \"The club posted record revenue. It cannot "
-        "pay January's wages.\"; (b) a direct question this video answers; "
+        "of these three forms: (a) a stark numeric contradiction — \"The club posted record "
+        "revenue. It cannot pay January's wages.\"; (b) a direct question this episode "
+        "answers; "
         "(c) a stakes statement naming who is affected and how soon. "
         "No preamble, no scene-setting, no throat-clearing before the hook. "
         "Do NOT write a conclusion or sign-off — the script continues after this section."

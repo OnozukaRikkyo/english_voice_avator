@@ -58,6 +58,9 @@ _IN, _OUT = STEP_IO["polish"]
 
 _DETECT_PROMPT = """\
 You are inspecting a finished narration script for a spoken news-commentary podcast.
+The story may be about anything — politics, business, sport, science, culture, disaster —
+and every check below applies unchanged whatever the subject. Judge the script against its
+own subject matter, not against the examples used here to illustrate each check.
 Report defects. Do NOT rewrite anything: this pass produces a list, nothing else.
 
 Quote the offending text EXACTLY as it appears — a later pass finds your quote by exact
@@ -65,19 +68,25 @@ string match, so a paraphrased or re-punctuated quote is useless.
 
 # 1. REPEATED RHETORICAL MOVE
 Repetition of a device, not of words. If the narrator performs the same MOVE three or more
-times — reacting with astonishment at a number, introducing an analogy, asking the listener
-a question, announcing a turn — name the move, count it, and quote every instance.
+times — reacting with astonishment at a figure, introducing an analogy, asking the listener
+a question, announcing a turn, calling something unprecedented — name the move, count it,
+and quote every instance.
 Wording that differs each time still counts: "I assumed I had misread it", "I had to check
 it twice", "I assumed it might be a typo" are ONE move performed three times, and by the
 third the listener hears a performance rather than a reaction.
 
 # 2. BROKEN SENTENCE
-A sentence that does not survive on its own: a claim whose meaning was lost when it was
-shortened ("refining enough fuel for only its own internal requirements" where the point
-was that refining covers only two-thirds of demand), a connective that does not follow from
-what precedes it ("Those claims remain unconfirmed rumors. The general's survival is
-therefore a crucial detail."), a number that does not agree with its verb, a fragment left
-over from an earlier draft.
+A sentence that does not survive on its own. Four kinds, whatever the subject:
+- MEANING LOST IN SHORTENING: the sentence still parses but no longer says anything —
+  "producing enough for only its own internal requirements" after the point that production
+  covers two-thirds of demand was cut; "the club posted strong revenue" after the figure
+  that made it strong was cut.
+- CONNECTIVE THAT DOES NOT FOLLOW: "Those reports remain unconfirmed. His survival is
+  therefore a crucial detail." — "therefore" joins nothing. Also "but" between two agreeing
+  clauses, "which means" before a claim that does not follow.
+- NUMBER THAT DOES NOT AGREE with its verb or its unit.
+- FRAGMENT left over from an earlier draft: a sentence that answers a point the script no
+  longer makes.
 
 # 3. MISSING STRUCTURE
 Answer each of these with yes or no and quote the evidence, or report the absence:
@@ -90,9 +99,11 @@ Answer each of these with yes or no and quote the evidence, or report the absenc
 - Does the ending return to the opening question and close it?
 
 # 4. OVER-EXPLANATION
-An inline gloss on a word a general adult listener already knows — "air-defense batteries,
-grouped defensive systems", "VIPs, or very important people". Specialist terms keep their
-gloss; ordinary vocabulary does not need one.
+An inline gloss on a word a general adult listener already knows — "a stadium, a venue
+where matches are played", "VIPs, or very important people", "a logistics hub, a site that
+stores and moves supplies". The test is whether ordinary journalism uses the word without
+explaining it. Genuine specialist terms — loan-loss provisions, expected goals, a
+hit-to-kill interceptor, a p-value — keep their gloss.
 
 # 5. ATTRIBUTION AND HEDGING
 - Wording implying the programme has its own reporters or private informants ("our
