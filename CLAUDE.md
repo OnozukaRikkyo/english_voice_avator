@@ -11,15 +11,16 @@ Japanese translation, and a HeyGen avatar video.
 ## Pipeline Flow
 
 ```
-  raw/                → [convert         ] → audio/
-  audio/              → [transcribe      ] → transcript/
-  transcript/         → [rewrite         ] → draft/parts/
-  draft/parts/        → [review          ] → narration/parts/
-  narration/parts/    → [concat_narration] → narration/   ← 出力1
-  narration/_full.txt → [factcheck       ] → narration/_factcheck.md
-  narration/_full.txt → [translate       ] → translation/   ← 出力2
-  narration/parts/    → [heygen          ] → video/parts/
-  video/parts/        → [concat_video    ] → video/
+  raw/                → [convert     ] → audio/
+  audio/              → [transcribe  ] → transcript/
+  transcript/         → [rewrite     ] → draft/parts/
+  draft/parts/        → [assemble    ] → draft/_full.txt
+  draft/_full.txt     → [polish      ] → narration/_full.txt   ← 出力1
+  narration/_full.txt → [factcheck   ] → narration/_factcheck.md
+  narration/_full.txt → [split       ] → narration/parts/
+  narration/_full.txt → [translate   ] → translation/   ← 出力2
+  narration/parts/    → [heygen      ] → video/parts/
+  video/parts/        → [concat_video] → video/
 ```
 
 `narration/` は2つに分かれる: `translate` は `_full.txt` を、`heygen` は
@@ -61,7 +62,7 @@ enforced by `tools/check_design.py`.
 | `raw/` | Raw input (m4a / mp4 / mp3) |
 | `audio/` | Converted audio (mp3) |
 | `transcript/` | English transcript (verbatim) |
-| `draft/` | Narration draft, before the news review |
+| `draft/` | Generated draft, before inspection |
 | `narration/` | English narration script (SSML) |
 | `translation/` | Japanese translation of the narration |
 | `video/` | Avatar video (mp4, HeyGen) |
@@ -73,9 +74,10 @@ enforced by `tools/check_design.py`.
 | `convert` | `raw/` | `audio/` | `pipeline/convert.py` | active |
 | `transcribe` | `audio/` | `transcript/` | `pipeline/transcribe.py` | active |
 | `rewrite` | `transcript/` | `draft/` | `pipeline/rewrite.py` | active |
-| `review` | `draft/` | `narration/` | `pipeline/review.py` | active |
-| `concat_narration` | `narration/` | `narration/` | `tools/concat_narration.py` | active |
+| `assemble` | `draft/` | `draft/` | `tools/assemble.py` | active |
+| `polish` | `draft/` | `narration/` | `pipeline/polish.py` | active |
 | `factcheck` | `narration/` | `narration/` | `pipeline/factcheck.py` | active |
+| `split` | `narration/` | `narration/` | `-` | active |
 | `translate` | `narration/` | `translation/` | `pipeline/translate.py` | active |
 | `heygen` | `narration/` | `video/` | `pipeline/heygen.py` | active |
 | `concat_video` | `video/` | `video/` | `tools/concat_video.py` | active |

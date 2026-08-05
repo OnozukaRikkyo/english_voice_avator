@@ -8,9 +8,11 @@ data/
     audio/        converted mp3
     transcript/   English transcript, verbatim
     draft/
-      parts/      narration draft (_part*.txt) + review report (_review.md)
+      parts/      generated chunks (_part*.txt)
+      _full.txt   assembled script, before inspection
     narration/    English narration script (_full.txt = final)
-      parts/      reviewed segments (_part*.txt) — heygen input
+      _defects.md what polish fixed and what remains
+      parts/      split for heygen only (_part*.txt)
     translation/  Japanese translation of narration (_ja.txt)
     video/        avatar video mp4 (final .mp4)   ← 保留中
       parts/      per-segment videos (_part*.mp4) — heygen output
@@ -70,7 +72,7 @@ REWRITE_MODEL    = _model("REWRITE_MODEL",    "gpt-5.6-luna")        # 文字起
 # review は台本を「放送できるニュース解説か」の観点で点検して直す工程。
 # 裏付けのない断定・見出し的な煽り・片側だけの視点を見つける仕事なので、
 # rewrite と同じく上位モデルを使う（安いモデルは問題を見つけられない）。
-REVIEW_MODEL     = _model("REVIEW_MODEL",     "gpt-5.6-luna")        # 台本の校閲・修正
+REVIEW_MODEL     = _model("REVIEW_MODEL",     "gpt-5.6-luna")        # 台本の点検・修正
 TRANSLATE_MODEL  = _model("TRANSLATE_MODEL",  "gemini-3.6-flash")    # 英語ナレーション → 日本語
 
 # tools/gen_notebooklm_prompt.py 専用。用語の正式な英語表記を実際に検索させるため
@@ -183,6 +185,24 @@ NARRATION_OPENING = os.environ.get(
     '<break time="1.5s"/>',
 )
 
+# 点検（A検出→Bパッチ→C検証）を何周回すか。
+#
+# ゼロ欠陥を追うと収束しない。文体の反復のような「好み」に近い指摘は、
+# 直すたびに別の指摘が生まれる。実害のあるもの（構造・文意の破綻・事実）は
+# 1〜2周で片付き、残りは記録して人が判断すればよい。
+# 1周あたり検出・パッチ・検証の3回 API を呼ぶ。
+POLISH_ROUNDS = int(os.environ.get("POLISH_ROUNDS", "2"))
+
+# 台本の末尾に必ず入る締め。挨拶（NARRATION_OPENING）と対になるもので、
+# tools/assemble.py が全文を組み立てるときに足す。モデルには書かせない。
+# 空にすれば入れない。
+NARRATION_CLOSING = os.environ.get(
+    "NARRATION_CLOSING",
+    "That's where I'll leave it. <break time=\"0.5s\"/> "
+    "I'm Bogdan Parkhomenko. If this way of reading the news is useful to you, "
+    "stay with the channel — there's another story underneath the next headline.",
+)
+
 HEYGEN_BASE_URL  = "https://api.heygen.com"
 HEYGEN_AVATAR_ID = os.environ.get("HEYGEN_AVATAR_ID", "")
 HEYGEN_VOICE_ID  = os.environ.get("HEYGEN_VOICE_ID", "")
@@ -208,7 +228,7 @@ STAGE_LABELS: dict[str, str] = {
     "raw":         "Raw input (m4a / mp4 / mp3)",
     "audio":       "Converted audio (mp3)",
     "transcript":  "English transcript (verbatim)",
-    "draft":       "Narration draft, before the news review",
+    "draft":       "Generated draft, before inspection",
     "narration":   "English narration script (SSML)",
     "translation": "Japanese translation of the narration",
     "video":       "Avatar video (mp4, HeyGen)",
@@ -222,9 +242,10 @@ STEP_IO: dict[str, tuple[str, str]] = {
     "convert":          ("raw",         "audio"),
     "transcribe":       ("audio",       "transcript"),
     "rewrite":          ("transcript",  "draft"),
-    "review":           ("draft",       "narration"),
-    "concat_narration": ("narration",   "narration"),
+    "assemble":         ("draft",       "draft"),
+    "polish":           ("draft",       "narration"),
     "factcheck":        ("narration",   "narration"),
+    "split":            ("narration",   "narration"),
     "translate":        ("narration",   "translation"),
     "heygen":           ("narration",   "video"),
     "concat_video":     ("video",       "video"),

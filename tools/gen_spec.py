@@ -39,14 +39,15 @@ def _module_path(step: str) -> str:
 
 
 # 利用者が受け取る最終成果物を作る工程（rewrite は parts/ 止まりなので含めない）
-_FINAL_OUTPUTS = {"concat_narration": "出力1", "translate": "出力2"}
+_FINAL_OUTPUTS = {"polish": "出力1", "translate": "出力2"}
 
 # ステージ名だけでは足りない入出力の実体
 _DETAIL = {
     "rewrite":          (None, "draft/parts/"),
-    "review":           ("draft/parts/", "narration/parts/"),
-    "concat_narration": ("narration/parts/", None),
+    "assemble":         ("draft/parts/", "draft/_full.txt"),
+    "polish":           ("draft/_full.txt", "narration/_full.txt"),
     "factcheck":        ("narration/_full.txt", "narration/_factcheck.md"),
+    "split":            ("narration/_full.txt", "narration/parts/"),
     "translate":        ("narration/_full.txt", None),
     "heygen":           ("narration/parts/", "video/parts/"),
     "concat_video":     ("video/parts/", None),

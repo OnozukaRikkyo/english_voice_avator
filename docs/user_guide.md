@@ -44,7 +44,7 @@ cp your_audio.m4a data/inbox/    # 1. 置く
 ```
 
 **`./run.sh` は引数なしで最初から最後まで通します。**
-`convert → transcribe → rewrite → review → concat_narration → factcheck → translate → heygen → concat_video` が順に動きます。
+`convert → transcribe → rewrite → assemble → polish → factcheck → split → translate → heygen → concat_video` が順に動きます。
 プロジェクト名は音声ファイル名から自動で付きます。
 入力音声は英語である前提です。
 
@@ -65,24 +65,35 @@ data/{プロジェクト名}/
   narration/*_full.txt     ← 英語ナレーション台本（SSML）
   translation/*_ja.txt     ← その日本語訳
   video/*.mp4              ← 結合済みのアバター動画
-  draft/parts/*_review.md  ← 台本のどこを報道基準で直したかの記録
+  narration/*_defects.md   ← 台本のどこを直し、何が残ったかの記録
   narration/*_factcheck.md ← 配信前に一次ソースと照合すべき項目の表
 ```
 
-### 台本の点検（review 工程）
+### 台本の点検（polish 工程）
 
 `rewrite` が書いた台本は、そのままでは報道として危うい箇所を含みます。
 文字起こしに無い数字が足される、"reportedly" が落ちて推測が断定になる、
-片方の当事者の主張が地の文になる — 読み返しの効かない音声では、いずれも
-そのまま事実として受け取られます。
+同じ言い回しが何度も出る — 読み返しの効かない音声では、いずれも
+そのまま受け取られます。
 
-`review` は台本を **元の文字起こしと突き合わせて** 点検し、最小限の修正を
-入れた版を `narration/parts/` に書きます。以降の工程はこちらを使います。
+`polish` は **連結した台本の全文** に対して3つのパスを回します。
 
-何を直したかは `draft/parts/{stem}_part01_review.md` に残るので、
-録音前にここだけ読めば済みます。指摘が high（裏付け無し・断定化・
-一方的な引用）で出ていたら、元の音声まで戻って確認してください。
-指摘が1件も無ければ台本には触らず、そのまま複製します。
+| | 役割 |
+|---|---|
+| A 検出 | 書き換えず、欠陥の一覧だけを出す |
+| B パッチ | 「元の文 → 直した文」の組だけを出す（全文の書き直しはしない） |
+| C 検証 | 組ごとに数値・固有名詞・ヘッジが保たれているか確かめる |
+
+**文字列の置換はコードが行い、元の文が原文に厳密一致しない組は棄却します。**
+修正対象でない文が巻き添えで壊れることが、構造的に起きません。
+
+反復フレーズ・壊れたタグ・数字・表記揺れは `pipeline/defects.py` が
+コードで数えます。モデルに数えさせません。モデルが担うのは
+「修辞の反復」「文意の破綻」「必須要素の有無」「帰属とヘッジ」だけです。
+
+何を直し、何が残ったかは `narration/{stem}_defects.md` にあります。
+**残存欠陥のうち、構造・文意の破綻・事実に関わるものは配信前に
+手で直してください。**
 
 ### 配信前の照合リスト（factcheck 工程）
 
@@ -156,9 +167,10 @@ gen_notebooklm_prompt.sh      資料 → NotebookLM プロンプト
 step_convert.sh               音声形式の変換
 step_transcribe.sh            文字起こし
 step_rewrite.sh               ナレーション台本の生成
-step_review.sh                台本を報道基準で点検して修正
+step_assemble.sh              パートを1本の台本に連結
+step_polish.sh                台本を全文で点検して修正
 step_factcheck.sh             配信前に照合すべき項目の表を生成
-step_concat_narration.sh      台本パートの結合
+step_split.sh                 HeyGen の上限で分割
 step_translate.sh             日本語訳
 step_heygen.sh                アバター動画の生成
 step_concat_video.sh          動画パートの結合

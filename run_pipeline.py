@@ -10,9 +10,10 @@ Steps (default: all):
   convert          raw/             → audio/
   transcribe       audio/           → transcript/
   rewrite          transcript/      → draft/parts/
-  review           draft/parts/     → narration/parts/
-  concat_narration narration/parts/ → narration/*_full.txt
+  assemble         draft/parts/     → draft/*_full.txt
+  polish           draft/*_full.txt → narration/*_full.txt
   factcheck        narration/       → narration/*_factcheck.md
+  split            narration/       → narration/parts/
   translate        narration/       → translation/
   heygen           narration/parts/ → video/parts/
   concat_video     video/parts/     → video/*.mp4
@@ -48,9 +49,10 @@ ALL_STEPS = [
     "convert",
     "transcribe",
     "rewrite",
-    "review",
-    "concat_narration",
+    "assemble",
+    "polish",
     "factcheck",
+    "split",
     "translate",
     "heygen",
     "concat_video",
@@ -238,19 +240,23 @@ def main() -> None:
                     model=models["rewrite"],
                 )
 
-            elif step == "review":
-                from pipeline import review
-                review.run(project, force=args.force, model=models["review"])
+            elif step == "assemble":
+                from tools.assemble import assemble
+                assemble(project, force=args.force)
 
-            elif step == "concat_narration":
-                from tools.concat_narration import concat_narration
-                concat_narration(project, force=args.force)
+            elif step == "polish":
+                from pipeline import polish
+                polish.run(project, force=args.force, model=models["review"])
 
             elif step == "factcheck":
                 from pipeline import factcheck
                 # 独立したモデル定数は持たない。review と同じ「報道基準の点検」なので
                 # REVIEW_MODEL（--model-review）に従う。
                 factcheck.run(project, force=args.force, model=models["review"])
+
+            elif step == "split":
+                from tools.split_narration import split_narration
+                split_narration(project, force=args.force)
 
             elif step == "translate":
                 from pipeline import translate

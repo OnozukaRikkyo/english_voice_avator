@@ -31,6 +31,10 @@ analysis and rewrite it as a single-narrator English commentary script for a pod
 A spoken conversation is repetitive, slow to reach the point, and full of unexplained \
 jargon. Keep every fact. Remove every restatement.
 
+A later pass inspects the finished script and repairs it. That pass counts repeated \
+phrasing, checks the SSML, and verifies every claim against the transcript, so do not \
+write defensively here — write the best script you can and let it be checked.
+
 # THE TWO NUMBERS
 - LENGTH: 65-80 percent of the source passage. Count the spoken words you write, ignoring \
 SSML tags and JSON syntax; a 7,000-character passage becomes roughly 4,600-5,600 characters \
@@ -74,12 +78,6 @@ plainly. It must land for a general audience with no specialist background.
 "which means... which in turn means... the significance of this is...".
 1.5 NO EMPTY INTENSIFIERS: "truly", "absolutely", "profound", "staggering", "make no \
 mistake", "it is important to understand that". Let the facts carry the weight.
-1.6 NO ECHOES. Do not reuse a distinctive phrase in adjacent sentences, and do not run \
-parallel-structure repetition ("You force them into impossible choices. You force the \
-government into agonizing choices.").
-1.7 NO ORPHANS. Every sentence must earn its place in the argument around it. A line left \
-over from an earlier draft — "The natural pushback concerns strategic value: many listeners \
-might draw a parallel..." — is worse than no sentence. Cut it or finish the thought.
 
 # 2. SUBSTANCE — WHAT MUST SURVIVE
 2.1 PRESERVE ALL HEDGING. Where the source says "may", "reportedly", "appears to", "some \
@@ -174,17 +172,12 @@ first saw that figure, I assumed a typo". This is the narrator's own voice, not 
 about the world, so it is exempt from rule 2.3 — but it never alters a fact, never drops a \
 hedge and never passes judgement on the people in the story. Mark a personal read as one: \
 "my read is", "I suspect".
-7.2 NO CATCHPHRASE. "What caught my attention", "the figure that caught me", "what stands \
-out to me" are ONE formula, not three, and a formula heard repeatedly reads as a template — \
-it destroys the naturalness it was meant to create. Use a given construction ONCE, and \
-prefer reacting through the content itself: "Sixty-seven fire vehicles. That is not a \
-warehouse fire, that is a refinery response."
-7.3 SHARE THE REASONING with "we" in analytical passages — "if we follow the money one \
+7.2 SHARE THE REASONING with "we" in analytical passages — "if we follow the money one \
 step further" — while facts keep their attribution and speculation keeps its hedging.
-7.4 BREAK UP DENSE RUNS. In a block with a long unbroken run of explanation, place ONE \
+7.3 BREAK UP DENSE RUNS. In a block with a long unbroken run of explanation, place ONE \
 short rhetorical question at its densest point, answered immediately. One per block at \
 most, and not in every block.
-7.5 STAKES BEFORE MECHANICS: where the source gives you the stakes, put them in one \
+7.4 STAKES BEFORE MECHANICS: where the source gives you the stakes, put them in one \
 sentence before explaining how something works. Where it does not, open on the strongest \
 fact instead — do not invent a consequence to have something to lead with. Give the two or \
 three highest-stakes claims extra room and a hard landing; move fast through supporting \
@@ -208,7 +201,7 @@ arrangements are present. Do not drift between them for the same fact.
 aloud by the synthesizer.
 - Pauses: <break time="0.5s"/> between sentences that need a beat (not after every \
 sentence), <break time="1.0s"/> between blocks, <break time="1.5s"/> at a chapter boundary.
-- Never place two break tags next to each other, and never put one inside a sentence.
+- Never put a break inside a sentence.
 - Example: <speak>The crater should have been twenty meters wide. It was ten. \
 <break time="0.5s"/> That gap is the whole story. <break time="1.0s"/> The warhead ...</speak>\
 """
@@ -458,18 +451,6 @@ def _hook_text(part1: Path) -> str:
     return body[:600]
 
 
-def _with_opening(part_text: str) -> str:
-    """台本の先頭に定型の挨拶を差し込む（part01 だけに適用する）。
-
-    挨拶は <speak> の外に置けない。SSML として妥当でなくなるうえ、
-    heygen は1パートを1本の動画として送るため、中に入れないと読まれない。
-    """
-    opening = NARRATION_OPENING.strip()
-    if not opening:
-        return part_text
-    return ssml.wrap(opening + "\n\n" + ssml.unwrap(part_text))
-
-
 def _build_prompt(max_chars: int, transcript: str) -> str:
     if max_chars == -1:
         return _PROMPT_UNLIMITED + "\n\n" + transcript
@@ -633,8 +614,6 @@ def _rewrite_chunk(
     for offset, p in enumerate(paragraphs):
         idx = start_index + offset          # 塊をまたいで連番になるようずらす
         part_text = ssml.merge_breaks(p["text"].strip())
-        if idx == 1:                        # 台本全体の先頭。挨拶はここにだけ入る
-            part_text = _with_opening(part_text)
         out = output_dir / f"{txt_path.stem}_part{idx:02d}.txt"
         out.write_text(part_text, encoding="utf-8")
         print(f"    part {idx:02d}: {len(part_text)} chars → {out.name}")

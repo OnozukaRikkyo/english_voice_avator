@@ -42,7 +42,7 @@ data/inbox/
 **引数は不要です。** `data/inbox/` を読み、ファイル名からプロジェクトを
 自動で作り、下の全工程を最初から最後まで通します。
 
-`convert → transcribe → rewrite → review → concat_narration → factcheck → translate → heygen → concat_video`
+`convert → transcribe → rewrite → assemble → polish → factcheck → split → translate → heygen → concat_video`
 
 所要時間の目安（49分の音声・8分割での実測）:
 
@@ -51,9 +51,10 @@ data/inbox/
 | `convert` | 20秒 |
 | `transcribe` | 1分 |
 | `rewrite` | 15分前後（分割した塊ごとにAPIを呼ぶ・作り直し込み） |
-| `review` | 20分前後（台本パートごとにAPIを呼ぶ） |
-| `concat_narration` | 即時 |
+| `assemble` | 即時 |
+| `polish` | 15分前後（1周につき検出・パッチ・検証で3回API） |
 | `factcheck` | 数分（台本全体を1回で読む） |
+| `split` | 即時 |
 | `translate` | 1〜2分 |
 | `heygen` | **最も長い**。動画1本あたり数分 × パート数 |
 | `concat_video` | 数十秒 |
@@ -67,11 +68,11 @@ data/{プロジェクト名}/
   narration/*_full.txt     ← 英語ナレーション台本（SSML）
   translation/*_ja.txt     ← その日本語訳
   video/*.mp4              ← 結合済みのアバター動画
-  draft/parts/*_review.md  ← 台本のどこを報道基準で直したかの記録
+  narration/*_defects.md   ← 台本のどこを直し、何が残ったかの記録
   narration/*_factcheck.md ← 配信前に一次ソースと照合すべき項目の表
 ```
 
-録音・公開の前に `*_review.md` の high 指摘と `*_factcheck.md` の
+録音・公開の前に `*_defects.md` の残存欠陥と `*_factcheck.md` の
 high 行に目を通してください（説明は `user_guide.md`）。
 
 ---

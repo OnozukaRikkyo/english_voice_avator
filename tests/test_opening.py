@@ -1,45 +1,67 @@
-"""定型オープニングの差し込み（rewrite._with_opening）。
+"""定型の挨拶とアウトロの差し込み（tools/assemble.py）。
 
-挨拶は part01 の <speak> の中に入る。外に置くと SSML として妥当でなくなり、
-heygen が読み上げない。
+台本全体に1回だけ現れるものは、塊ごとの生成ではなく連結の時点で足す。
+モデルに書かせると文言が毎回ぶれるうえ、part01 だけの特別扱いが要る。
+
+挨拶は <speak> の外には置けない。妥当な SSML でなくなると、
+音声合成に渡した時点で壊れる。
 """
+import re
+import xml.etree.ElementTree as ET
+
 import pytest
 
 from pipeline import ssml
 from pipeline.config import NARRATION_OPENING
-from pipeline.rewrite import _with_opening
+from tools import assemble
 
-PART = '<speak>The announcement landed after midnight. <break time="0.5s"/> Here is why.</speak>'
-
-
-def test_opening_comes_first():
-    got = _with_opening(PART)
-    body = ssml.unwrap(got)
-    assert body.startswith(NARRATION_OPENING.strip())
+PART = '<speak>\nThe announcement landed after midnight. <break time="0.5s"/> Here is why.\n</speak>'
 
 
-def test_original_text_is_kept():
-    got = _with_opening(PART)
+def _parts(tmp_path, *bodies) -> list:
+    d = tmp_path / "parts"
+    d.mkdir(parents=True, exist_ok=True)
+    out = []
+    for i, b in enumerate(bodies, 1):
+        f = d / f"ep_part{i:02d}.txt"
+        f.write_text(b, encoding="utf-8")
+        out.append(f)
+    return out
+
+
+def test_opening_comes_first_and_closing_last(tmp_path, monkeypatch):
+    monkeypatch.setattr(assemble, "NARRATION_OPENING", "Hello everyone.")
+    monkeypatch.setattr(assemble, "NARRATION_CLOSING", "That is where I leave it.")
+    got = assemble._merge_ssml(_parts(tmp_path, PART))
+    assert ssml.unwrap(got).startswith("Hello everyone.")
+    assert ssml.unwrap(got).endswith("That is where I leave it.")
+
+
+def test_original_text_is_kept(tmp_path):
+    got = assemble._merge_ssml(_parts(tmp_path, PART))
     assert "The announcement landed after midnight." in got
     assert "Here is why." in got
 
 
-def test_result_is_a_single_speak_element():
-    got = _with_opening(PART)
-    assert got.count("<speak>") == 1
-    assert got.count("</speak>") == 1
-    assert got.startswith("<speak>")
-    assert got.endswith("</speak>")
+def test_result_is_a_single_speak_element(tmp_path):
+    got = assemble._merge_ssml(_parts(tmp_path, PART, PART))
+    assert got.count("<speak>") == 1 and got.count("</speak>") == 1
+    ET.fromstring(got)                       # 妥当でなければ例外で落ちる
 
 
-def test_result_parses_as_xml():
-    import xml.etree.ElementTree as ET
-    ET.fromstring(_with_opening(PART))   # 妥当でなければ例外で落ちる
+def test_empty_opening_leaves_the_script_untouched(tmp_path, monkeypatch):
+    monkeypatch.setattr(assemble, "NARRATION_OPENING", "")
+    monkeypatch.setattr(assemble, "NARRATION_CLOSING", "")
+    got = assemble._merge_ssml(_parts(tmp_path, PART))
+    assert ssml.unwrap(got) == ssml.unwrap(PART)
 
 
-def test_empty_opening_leaves_the_part_untouched(monkeypatch):
-    monkeypatch.setattr("pipeline.rewrite.NARRATION_OPENING", "")
-    assert _with_opening(PART) == PART
+def test_no_double_break_at_the_seam(tmp_path, monkeypatch):
+    """挨拶の末尾の間と本文の先頭の間が重なると、そこだけ不自然に長く止まる。"""
+    monkeypatch.setattr(assemble, "NARRATION_OPENING", 'Hello. <break time="1.5s"/>')
+    monkeypatch.setattr(assemble, "NARRATION_CLOSING", "")
+    got = assemble._merge_ssml(_parts(tmp_path, '<speak><break time="0.5s"/> Body.</speak>'))
+    assert not re.search(r'<break[^>]*/>\s*<break[^>]*/>', got)
 
 
 @pytest.mark.parametrize("word", ["Hello", "welcome", "Bogdan Parkhomenko"])
@@ -47,15 +69,15 @@ def test_default_opening_greets_and_names_the_presenter(word):
     assert word in NARRATION_OPENING
 
 
-def test_opening_survives_heygen_splitting():
-    """長いパートは heygen が割る。挨拶は必ず1本目の先頭に残る。"""
-    long_part = ssml.wrap(
-        " ".join(f'Sentence number {i}. <break time="1.0s"/>' for i in range(400))
-    )
-    pieces = ssml.split(_with_opening(long_part), 5000)
+def test_opening_survives_heygen_splitting(tmp_path, monkeypatch):
+    """heygen は1パートを1本の動画として送る。挨拶が先頭に残らないと読まれない。"""
+    monkeypatch.setattr(assemble, "NARRATION_OPENING", "Hello everyone.")
+    monkeypatch.setattr(assemble, "NARRATION_CLOSING", "")
+    long_part = ssml.wrap(" ".join(f'Sentence {i}. <break time="1.0s"/>' for i in range(400)))
+    pieces = ssml.split(assemble._merge_ssml(_parts(tmp_path, long_part)), 5000)
     assert len(pieces) > 1
-    assert ssml.unwrap(pieces[0]).startswith(NARRATION_OPENING.strip())
-    assert all(len(p) <= 5000 for p in pieces)
+    assert ssml.unwrap(pieces[0]).startswith("Hello everyone.")
+    assert all(len(p) <= 5000 and p.count("<speak>") == 1 for p in pieces)
 
 
 def test_hook_extraction_strips_the_greeting(tmp_path, monkeypatch):
