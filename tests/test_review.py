@@ -136,3 +136,28 @@ def test_orphaned_outputs_are_dropped(tmp_path):
 def test_malformed_tag_in_revision_is_rejected():
     body = "x" * 2900 + '<break time="0.5s/>'
     assert "タグ" in review._validate(result(f"<speak>{body}</speak>"), DRAFT)
+
+
+def test_known_names_collects_proper_nouns(tmp_path):
+    p = tmp_path / "a.txt"
+    p.write_text("<speak>The Balzi Rossi restaurant on Kudrinskaya Square burned. "
+                 "The Balzi Rossi is closed.</speak>", encoding="utf-8")
+    names = review.known_names([p])
+    assert "Balzi Rossi" in names
+    assert names.index("Balzi Rossi") == 0        # 頻度順
+
+
+def test_names_block_reaches_the_prompt(tmp_path, monkeypatch):
+    """表記揺れは part をまたいで起きるので、確定済みの綴りを渡せないと見つからない。"""
+    seen = {}
+    monkeypatch.setattr(review.llm, "generate_json",
+                        lambda m, prompt, *a, **k: seen.setdefault("p", prompt) and "" or
+                        json.dumps([result(DRAFT, [])]))
+    src = tmp_path / "draft" / "parts"
+    src.mkdir(parents=True)
+    part = src / "ep_part02.txt"
+    part.write_text(DRAFT, encoding="utf-8")
+    out = tmp_path / "narration" / "parts" / "ep_part02.txt"
+    out.parent.mkdir(parents=True)
+    review.review_part(part, out, source="", names=["Balzi Rossi"])
+    assert "Balzi Rossi" in seen["p"]

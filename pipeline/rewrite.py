@@ -65,13 +65,18 @@ no "picture this". Open on substance.
 return to explain how the analogy works or map it back to the subject. If an analogy needs a \
 second paragraph to land, delete it and describe the thing plainly.
 1.4 NO RECAP, ANYWHERE. Do not summarize what you have already said — not when changing \
-topic, not before a conclusion, not at the end. The listener heard it a minute ago.
+topic, not before a conclusion, not at the end. The listener heard it a minute ago. \
+The chapter signposts and the callback in section 4 are NOT recaps and are NOT covered by \
+this rule: a signpost names where we are going in one clause, it does not re-explain where \
+we have been.
 1.5 NO IMPLICATION PADDING. After a fact, allow at most ONE sentence of implication. Never \
 chain "which means ... which in turn means ... the significance of this is ...".
 1.6 VARY SENTENCE LENGTH. Alternate short declaratives with longer explanatory sentences. \
 Avoid a uniform cadence where every sentence is a stately pronouncement.
 1.7 CUT GENERIC TRANSITIONS. "This brings us to", "Now, shift your focus to", "With that in \
-mind" — use almost never. Start the new topic with its own strongest fact instead.
+mind" — use almost never. Start the new topic with its own strongest fact instead. This bans \
+EMPTY transitions, not the chapter signposts of section 4, which carry information about \
+where the argument has arrived.
 1.8 NO EMPTY INTENSIFIERS. Cut "truly", "absolutely", "profound", "staggering", "make no \
 mistake", "it is important to understand that". Let the numbers carry the weight.
 1.9 NO ECHOES. Never reuse a distinctive phrase in adjacent sentences, and never run \
@@ -182,10 +187,13 @@ Move fast through the supporting detail.
 ear a beat: one short rhetorical question the script answers immediately ("So why does \
 this matter to a bank hundreds of miles away?"). At most one question per topic block.
 7.4 Trust the audience. Do not spell out an inference an attentive listener can make.
-7.5 THE HOST IS PRESENT. This is one person talking to a listener, not a document read \
-aloud. Once or twice per chapter, the narrator reacts in first person — "Here's the part \
-that genuinely surprised me", "When I first saw that figure, I assumed a typo". A reaction \
-is the narrator's own voice; it never alters a fact and never drops a hedge.
+7.5 THE HOST IS PRESENT — THIS IS REQUIRED, NOT OPTIONAL. This is one person talking to a \
+listener, not a document read aloud. Once or twice per chapter, the narrator reacts in first \
+person — "Here's the part that genuinely surprised me", "When I first saw that figure, I \
+assumed a typo". A section with no first-person presence at all has failed this rule. \
+A reaction is the narrator's own voice about the EVIDENCE ("that number is what surprised \
+me"); it never alters a fact, never drops a hedge, and never passes moral judgement on the \
+people in the story.
 7.6 SHARE THE REASONING. In analytical passages, think alongside the listener with "we" — \
 "if we follow the money one step further..." — while facts keep their attribution and \
 speculation keeps its hedging.

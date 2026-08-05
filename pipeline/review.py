@@ -17,6 +17,7 @@ rewrite が書いた台本は読み物としては整っていても、報道と
 書き換えてしまうためである。
 """
 import json
+import re
 from pathlib import Path
 
 from . import artifact, llm, ssml
@@ -58,7 +59,13 @@ that is stated more precisely than the transcript supports.
 MEDIUM — fix unless the fix would break the sentence:
 - SENSATIONALISM: alarmist or headline-style language that outruns the evidence \
 ("catastrophic", "on the brink", "the beginning of the end", "shocking").
-- EDITORIALISING: the narrator's opinion or moral verdict presented as analysis.
+- EDITORIALISING: a moral verdict on the people in the story, or the narrator's opinion \
+presented as though it were established fact ("the spending exposed their hypocrisy").
+  NOT editorialising, and NOT to be removed: the host's own first-person reaction to the \
+EVIDENCE, plainly marked as personal — "Here's the part that surprised me", "when I follow \
+that chain one step further", "if we take the figure at face value". This narration has a \
+named human presenter and that voice is deliberate. Leave it alone unless it states a fact, \
+drops a hedge, or judges a person.
 - LOADED FRAMING: emotive or partisan wording where neutral wording carries the same fact.
 - MISSING COUNTERPOINT: the transcript contains a caveat, denial, or competing reading \
 that the script dropped.
@@ -109,6 +116,20 @@ Return one JSON array with a single element:
 (the exact phrase from the draft, under 30 words), "problem" (one sentence), and "fix" \
 (one sentence on what you changed).
 - "revised": the corrected script in SSML.
+"""
+
+# 表記揺れは part をまたいで起きる（実例: 同一のレストランが part05 で "Balzi Rossi"、
+# part07 で "Balti Rossi"）。review は1 part ずつ見るため、単独では原理的に見つからない。
+# 済んだ part で確定した綴りを次の part に渡して、照合できるようにする。
+_NAMES_BLOCK = """\
+
+# Spellings Already Used Earlier In This Script
+
+These proper nouns appear in the parts already reviewed. This part must spell them exactly
+the same way. A different spelling of the same thing is an INCONSISTENT NAME finding — fix
+it to match this list, unless the transcript clearly shows this list is the wrong one.
+
+{names}
 """
 
 _SOURCE_BLOCK = """\
@@ -247,10 +268,37 @@ def _source_for(part: Path, transcript_dir: Path, part_count: int, index: int) -
     return text
 
 
-def review_part(part: Path, out: Path, source: str, model: str = REVIEW_MODEL) -> Path:
+# 固有名詞らしきもの: 大文字で始まる語が2語以上続くもの。
+_PROPER = re.compile(r"\b[A-Z][a-z]+(?:\s+(?:[A-Z][a-z]+|of|the|and))*\s+[A-Z][a-z]+\b")
+
+# 文頭の語は固有名詞でなくても大文字になる。そのまま採ると "The Balzi Rossi" と
+# "Balzi Rossi" が別物として並び、照合表が汚れる。先頭のこれらは落とす。
+_LEADING = {"the", "a", "an", "this", "that", "these", "those", "it", "its",
+            "but", "and", "if", "when", "while", "in", "on", "at", "for", "by",
+            "from", "with", "as", "so", "then", "now", "here", "there", "his",
+            "her", "their", "our", "no", "not", "both", "each", "more", "most"}
+
+
+def known_names(parts: list[Path]) -> list[str]:
+    """済んだ part から固有名詞らしき表記を集める（頻度順）。"""
+    seen: dict[str, int] = {}
+    for f in parts:
+        for m in _PROPER.finditer(ssml.unwrap(f.read_text(encoding="utf-8"))):
+            words = m.group().split()
+            while len(words) > 2 and words[0].lower() in _LEADING:
+                words.pop(0)
+            name = " ".join(words)
+            if len(words) >= 2 and len(name) > 4 and words[0].lower() not in _LEADING:
+                seen[name] = seen.get(name, 0) + 1
+    return sorted(seen, key=lambda n: (-seen[n], n))[:60]
+
+
+def review_part(part: Path, out: Path, source: str, model: str = REVIEW_MODEL,
+                names: list[str] | None = None) -> Path:
     draft = part.read_text(encoding="utf-8").strip()
     prompt = (
         _PROMPT
+        + (_NAMES_BLOCK.format(names="\n".join(f"- {n}" for n in names)) if names else "")
         + (_SOURCE_BLOCK.format(source=source) if source else "")
         + _DRAFT_BLOCK.format(draft=draft)
     )
@@ -341,7 +389,9 @@ def run(project: str, *, force: bool = False, model: str | None = None) -> list[
             results.append(out)
             continue
         source = _source_for(part, transcript_dir, len(parts), i)
-        results.append(review_part(part, out, source, model=active_model))
+        # 済んだ part の綴りを渡す。skip された part も確定済みなので含める。
+        names = known_names([p for p in results if p.exists()])
+        results.append(review_part(part, out, source, model=active_model, names=names))
 
     return results
 
