@@ -153,6 +153,17 @@ _SCHEMA = {
 
 _MAX_ATTEMPTS = 3
 
+# 作り直しのときだけ足す。何が駄目だったかを伝えないと同じ失敗を繰り返す。
+_RETRY_BLOCK = """
+
+# YOUR PREVIOUS ATTEMPT WAS REJECTED — READ THIS FIRST
+{problem}
+
+Return the corrected script again with exactly that defect fixed. The revision must stay
+about as long as the draft: this is a correction pass, not a rewrite and not a summary.
+The whole script is one <speak> wrapper.
+"""
+
 # 校閲は書き直しではないので、長さは大きく動かないはずである。
 # 下限を割る = 台本を削って要約した。上限を超える = 直すついでに書き足した
 # （rewrite で削った冗長さが戻ってくるのは、この工程で最も避けたい失敗）。
@@ -236,11 +247,14 @@ def review_part(part: Path, out: Path, source: str, model: str = REVIEW_MODEL) -
     )
 
     result: dict = {}
+    problem: str | None = None
     for attempt in range(1, _MAX_ATTEMPTS + 1):
         raw = ""
         try:
-            raw = llm.generate_json(model, prompt, _SCHEMA,
-                                    schema_name="narration_review", effort="high")
+            raw = llm.generate_json(
+                model,
+                prompt + (_RETRY_BLOCK.format(problem=problem) if problem else ""),
+                _SCHEMA, schema_name="narration_review", effort="high")
             parsed = json.loads(raw or "[]")
             result = parsed[0] if parsed else {}
             problem = _validate(result, draft)

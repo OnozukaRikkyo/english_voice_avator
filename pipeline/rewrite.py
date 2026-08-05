@@ -32,6 +32,15 @@ CONCRETE, and FAST-MOVING.
 The source is a spoken conversation, so it is repetitive, slow to reach the point, and full \
 of unexplained jargon. Your job is to keep every fact and remove every restatement.
 
+TWO NUMBERS GOVERN EVERYTHING YOU WRITE:
+- LENGTH: the narration must land at 60-75 percent of the source passage's character count. \
+This is a FLOOR as much as a ceiling — a passage of 7,000 characters must produce roughly \
+4,200-5,200 characters. If your draft comes out near half the source or less, you have \
+summarized instead of rewritten: go back and carry the facts you dropped. Tight prose that \
+omits information is a failure, not a virtue.
+- FACTS: one hundred percent. Every topic, number, date, name, and point in the passage \
+appears in the narration. What gets cut is repetition, never information.
+
 PRIORITY ORDER when instructions compete:
 0 SUBJECT MATTER > 1 STRICT RULES > 2 FIDELITY > 3 DIALOGUE COLLAPSE > 4 STRUCTURE \
 > 5 CLARITY > 6 SPOKEN DELIVERY > 7 ENGAGEMENT.
@@ -70,9 +79,9 @@ mistake", "it is important to understand that". Let the numbers carry the weight
 2.1 COVER EVERY topic, event, location, number, date, name, and analytical point in the \
 source passage. Do not drop a section. Compression here means deleting REPETITION — never \
 deleting INFORMATION.
-2.2 Length must come from carrying more facts, not from saying one fact more ways. Aim for \
-roughly 60-75 percent of the source passage's length. Landing much shorter means you have \
-lost information; landing longer means you are padding.
+2.2 Length must come from carrying more facts, not from saying one fact more ways — the \
+60-75 percent target at the top of this prompt is reached by keeping information, never by \
+padding. The per-block length in section 4 governs ONE block, never the whole output.
 2.3 PRESERVE ALL HEDGING. Where the source says "may", "reportedly", "appears to", "some \
 analysts believe", or "unconfirmed", keep that uncertainty in English. Never promote \
 speculation into stated fact.
@@ -81,6 +90,16 @@ speculation into stated fact.
 2.5 Analysis is welcome, but it must be a NEW point — the underlying intent, mechanism, \
 incentive, or constraint that the speakers did not state. Restating their point in more \
 impressive language is not analysis.
+2.6 ANALYSIS ADDS NO FACTS. Interpretation connects facts already in the transcript; it \
+never introduces new ones. Adding a number, a date, an actor, a comparative ("faster", \
+"the largest"), or a stated consequence that the transcript does not contain is not \
+analysis — it is fabrication, and it is the single most common defect in rejected drafts. \
+Frame interpretation as interpretation ("that suggests...", "the incentive here is...") \
+and build it only from what the source gives you.
+2.7 QUOTE THE SOURCE'S OWN TERMS for anything contested or precise. If the transcript says \
+"war chests", do not upgrade it to "military reserves"; if it says the portfolio is \
+"highly toxic", do not extend that to "many debts unlikely to be repaid". Paraphrase \
+freely for flow — never for substance.
 
 # 3. DIALOGUE INTO ONE VOICE
 Most of the source's redundancy is structural: one speaker makes a point, the other agrees \
@@ -104,8 +123,10 @@ spoken words each. Split a topic that runs longer rather than letting one block 
 a block by echoing the previous block's conclusion.
 4.3 Each block CLOSES on its own point and stops. No summary sentence.
 4.4 Mark every block boundary with <break time="1.0s"/> — that pause is what tells the \
-listener a new topic has started. Do NOT write section headings, titles, labels, chapter \
-markers, speaker names, or stage directions — every character you output is read aloud by a synthetic voice.
+listener a new topic has started. A block is NOT a separate segment: the whole output stays \
+inside ONE <speak> wrapper and blocks are divided by that break tag alone. Never open a \
+second <speak>. Do NOT write section headings, titles, labels, chapter markers, speaker \
+names, or stage directions — every character you output is read aloud by a synthetic voice.
 4.5 A spoken transition between blocks, if used at all, is under six words.
 
 # 5. CLARITY
@@ -151,7 +172,8 @@ Confident, analytical, slightly urgent — a sharp explanatory YouTube essayist,
 documentary narrator. Authoritative, objective, aimed at a global audience.
 
 # 9. SSML FORMATTING — REQUIRED
-- Wrap the entire text of each segment in <speak> ... </speak>.
+- Wrap the ENTIRE output in exactly ONE <speak> ... </speak>. One opening tag, one closing \
+tag, no matter how many topic blocks the text contains.
 - Insert <break time="Xs"/> tags at natural spoken pauses:
   - Between sentences that need a beat: <break time="0.5s"/> (not after every sentence)
   - Between topic blocks: <break time="1.0s"/>
@@ -266,6 +288,19 @@ Return a JSON array of narration segments for AI voice synthesis:
 
 
 _MAX_ATTEMPTS = 3
+
+# 作り直しのときだけ足す。何が駄目だったかを伝えないと、モデルは同じ失敗を繰り返す。
+# 長さ不足を指摘したときに「もっと削る」方向へ行かないよう、直し方も添える。
+_RETRY_BLOCK = """
+
+# YOUR PREVIOUS ATTEMPT WAS REJECTED — READ THIS FIRST
+{problem}
+
+Return the whole section again with exactly that defect fixed. Keep everything else.
+If the complaint is about length, the fix is to carry MORE of the source's facts —
+never to compress harder. If it is about the SSML, remember that the entire section is
+one <speak> wrapper and topic blocks are separated by <break time="1.0s"/> alone.
+"""
 
 # ナレーション合計が transcript のこの割合を下回ったら生成失敗とみなす。
 #
@@ -492,6 +527,7 @@ def _rewrite_chunk(
 
     # 出力が途中で切れることが実際に起きる（`<break time=` で終わる SSML が
     # 生成された）。壊れた台本をそのまま翻訳まで流さないよう検証し、駄目なら作り直す。
+    problem: str | None = None
     for attempt in range(1, _MAX_ATTEMPTS + 1):
         # 用語の正確さ・行間の分析・意味単位での分割を同時に要求する最難関の工程。
         # OpenAI 経路では推論を深く使う（Gemini 経路では無視される）。
@@ -501,8 +537,10 @@ def _rewrite_chunk(
         # 作り直しの対象として扱う。
         raw = ""
         try:
-            raw = llm.generate_json(model, prompt, schema,
-                                    schema_name="narration_parts", effort="high")
+            raw = llm.generate_json(
+                model,
+                prompt + (_RETRY_BLOCK.format(problem=problem) if problem else ""),
+                schema, schema_name="narration_parts", effort="high")
             paragraphs = sorted(json.loads(raw or "[]"), key=lambda x: x["index"])
             problem = _validate(paragraphs, len(text))
         except llm.IncompleteResponse as e:
