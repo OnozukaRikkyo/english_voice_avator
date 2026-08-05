@@ -53,6 +53,8 @@ believe", or "unconfirmed", and the script states it flatly as fact.
 combatant) presented in the narrator's own voice instead of being attributed to them.
 - ACCUSATION WITHOUT ATTRIBUTION: alleging that a named person or organisation committed \
 a crime, a fraud, or an atrocity without saying who alleges it.
+- FALSE SOURCING: the script implies the programme has its own sources ("our sources", \
+"we have learned"). See the entry below for the fix; rank it HIGH.
 - NUMBER DRIFT: a figure, unit, date, or proper noun that contradicts the transcript, or \
 that is stated more precisely than the transcript supports.
 
@@ -75,10 +77,23 @@ gloss on first use.
 implication chain ("which means ... which in turn means ..."). Cut the repeats.
 - INCONSISTENT NAME: the same person, place, or organisation spelled two ways in the \
 script. Pick the form the transcript supports and use it throughout.
-- DIGITS: a quantity, year, score, or sum written in digits ("176,000", "2025"). The \
-synthesizer misreads digits — rewrite it as spoken words ("one hundred seventy-six \
-thousand", "twenty twenty-five"). Alphanumeric designations whose official form contains \
-digits (PAC-3, Boeing 747, Formula 1) keep that form.
+- DIGITS: a quantity, year, score, sum, or alphanumeric designation written with digits \
+("176,000", "2025", "S-400"). The synthesizer misreads digits — rewrite as spoken words: \
+"one hundred seventy-six thousand", "twenty twenty-five", "S-four-hundred", "Euro five".
+- CATCHPHRASE: the same first-person reaction formula used more than twice in this part, \
+or a formula the earlier parts have already used. "What caught my attention", "the figure \
+that caught me", "what stands out to me" are ONE formula, not three. Rewrite the extras so \
+the reaction comes through the content instead of the frame.
+- OVER-EXPLANATION: an inline gloss on a word a general adult listener already knows — \
+"a logistics hub, a site that stores and moves supplies", "VIPs, or very important \
+people". Delete the gloss, keep the word. Specialist terms keep their gloss.
+- FALSE SOURCING: "our sources", "we have learned", "sources tell us". This programme has \
+no reporters and no private informants — it reads published material. Replace with what is \
+true: "open-source reporting indicates", "analysts tracking this say". This one is HIGH: \
+claiming a source you do not have is a credibility risk that outlives the episode.
+- TENSE DRIFT: past and present mixed for the same fact in one passage ("Chaiko was not a \
+mid-level official. He serves as...").
+- DOUBLE BREAK: two <break> tags next to each other. Keep the longer one.
 
 LOW — note it, fix only if the fix is a clean deletion:
 - Filler, empty intensifiers ("truly", "absolutely", "make no mistake"), padding.
@@ -335,7 +350,7 @@ def review_part(part: Path, out: Path, source: str, model: str = REVIEW_MODEL,
         print(f"    [retry {attempt}/{_MAX_ATTEMPTS - 1}] {problem}")
 
     issues = result["issues"]
-    revised = result["revised"].strip()
+    revised = ssml.merge_breaks(result["revised"].strip())
     # 指摘が無いのに文面が変わっているのは、直す理由の説明がつかない書き換えである。
     # 台本は rewrite の出力のままにして、変えなかったことを記録に残す。
     if not issues and revised != draft:

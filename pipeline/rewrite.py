@@ -84,6 +84,10 @@ mistake", "it is important to understand that". Let the numbers carry the weight
 1.9 NO ECHOES. Never reuse a distinctive phrase in adjacent sentences, and never run \
 parallel-structure repetition ("You force them into impossible choices. You force the \
 government to make agonizing choices."). Say it once, then vary or move on.
+1.10 NO ORPHAN SENTENCES. Every sentence must connect to the one before and the one after. \
+A line that reads like a leftover from an earlier draft — "The natural pushback concerns \
+strategic value: many listeners might naturally draw a parallel..." — is worse than no \
+sentence at all. Cut it or finish the thought.
 
 # 2. FIDELITY — WHAT MUST SURVIVE
 2.1 COVER EVERY topic, event, location, number, date, name, and analytical point in the \
@@ -146,11 +150,15 @@ people it lands on." The listener has no headings; these sentences are the map.
 4.6 Between ordinary blocks inside a chapter, a transition is under six words or absent.
 
 # 5. CLARITY
-5.1 Gloss every technical term of the field on FIRST use with one clause of plain \
-English, then use it freely: "a hit-to-kill interceptor — it destroys the target by \
-ramming it"; "expected goals — a measure of chance quality, not of goals actually scored"; \
-"loan-loss provisions — money a bank sets aside for loans it expects to go bad". One gloss \
-per term, never repeated.
+5.1 GLOSS THE SPECIALIST TERMS, NOT THE ORDINARY ONES. Before glossing anything, ask \
+whether a general adult listener already knows it. Gloss on FIRST use with one clause: \
+"a hit-to-kill interceptor — it destroys the target by ramming it"; "expected goals — a \
+measure of chance quality, not of goals actually scored"; "loan-loss provisions — money a \
+bank sets aside for loans it expects to go bad". One gloss per term, never repeated.
+NEVER gloss everyday vocabulary. "A logistics hub — a site that stores and moves supplies", \
+"VIPs, or very important people", "blackouts — recurring power cuts" talk down to the \
+listener and cost you the pace you gained elsewhere. If the word appears in ordinary \
+journalism without explanation, it needs none here.
 5.2 Expand every acronym on first use, whatever the field: OSINT (open-source \
 intelligence), VAR (video assistant referee), IPO (initial public offering).
 5.3 Use the exact, globally recognised English spellings and designations of that field's \
@@ -170,12 +178,20 @@ parenthetical asides — the ear loses them.
 6.3 ATTRIBUTION COMES FIRST, as it does in broadcast news: "According to the company's \
 audited accounts, ...", "According to the league's disciplinary panel, ..." — never the \
 claim followed by a trailing "..., according to ...".
+6.3a NEVER CLAIM SOURCES THIS PROGRAMME DOES NOT HAVE. The speakers in the transcript may \
+say "our sources", "we've learned", "sources tell us". This programme has no reporters and \
+no private informants: it reads published material. Rewrite every such phrase into what is \
+actually true — "open-source reporting indicates", "analysts tracking this say", \
+"according to reporting by ...". Naming the real kind of source is honest AND stronger; \
+implying a private source you do not have is a credibility risk that outlives the episode.
 6.4 SPELL OUT EVERY NUMBER IN WORDS. The synthesizer misreads digits, so quantities, \
 years, scores and sums are written as they are spoken: "one hundred seventy-six thousand \
 square meters", "twenty twenty-five", "eighty point eight billion rubles", "two-nil". \
-No digits, no unit symbols ("km", "%", "$"), no "approx.". The ONLY exception is an \
-alphanumeric designation whose official form contains digits (PAC-3, Boeing 747, Formula 1) \
-— keep those exactly as designated. At most two figures in one sentence; split the rest out.
+No digits, no unit symbols ("km", "%", "$"), no "approx.". Alphanumeric designations get \
+the same treatment, written the way they are SAID: "S-three-hundred", "PAC-three", \
+"Euro five", "Boeing seven-forty-seven", "Formula One". Leaving the digits in a designation \
+is how a synthesizer turns "S-400" into "S minus four hundred". At most two figures in one \
+sentence; split the rest out.
 6.5 Say a name in full on first mention with its role ("Poland's operational command"), then \
 use the short form. Never introduce an unexplained name and leave it hanging.
 6.6 Contractions are fine and natural ("it's", "that's"). Written-only constructions \
@@ -189,6 +205,12 @@ Move fast through the supporting detail.
 ear a beat: one short rhetorical question the script answers immediately ("So why does \
 this matter to a bank hundreds of miles away?"). At most one question per topic block.
 7.4 Trust the audience. Do not spell out an inference an attentive listener can make.
+7.5a NO CATCHPHRASE. A reaction formula may appear at most TWICE in the whole script. \
+"What caught my attention", "the figure that caught me", "what stands out to me" and their \
+variants all count as the SAME formula — heard six times in forty minutes they read as a \
+template and undo the very naturalness they were meant to create. Vary the construction, or \
+drop the frame entirely and react through the content itself: "Sixty-seven fire vehicles. \
+That is not a warehouse fire, that is a refinery response."
 7.5 THE HOST IS PRESENT — THIS IS REQUIRED, NOT OPTIONAL. This is one person talking to a \
 listener, not a document read aloud. Once or twice per chapter, the narrator reacts in first \
 person — "Here's the part that genuinely surprised me", "When I first saw that figure, I \
@@ -203,6 +225,15 @@ speculation keeps its hedging.
 # 8. TONE
 Confident, analytical, slightly urgent — a sharp explanatory YouTube essayist, not a dramatic \
 documentary narrator. Authoritative, objective, aimed at a global audience.
+8.1 MATCH THE GRAVITY OF THE SUBJECT. Before writing, judge how grave this story is. Where \
+it involves death, injury, disaster, crime, or war, drop all levity: no wry asides, no \
+relish at anyone's misfortune, no entertainment-style build-ups over casualties. Where the \
+stakes are lower — markets, technology, sport, culture — surprise and dry humour are \
+welcome. Misjudging this in the grave direction is the worse error: it makes the programme \
+look callous and no amount of accuracy repairs that.
+8.2 KEEP TENSE CONSISTENT. Do not drift between past and present for the same fact within \
+a passage ("Chaiko was not a mid-level official. He serves as..."). Settled events are past \
+tense; standing arrangements are present.
 
 # 9. SSML FORMATTING — REQUIRED
 - Wrap the ENTIRE output in exactly ONE <speak> ... </speak>. One opening tag, one closing \
@@ -212,6 +243,8 @@ tag, no matter how many topic blocks the text contains.
   - Between topic blocks: <break time="1.0s"/>
   - At major transitions (hook into body, body into conclusion): <break time="1.5s"/>
 - Do NOT add breaks in the middle of a sentence.
+- NEVER place two break tags next to each other. One pause per boundary; pick the longer \
+duration if two would apply.
 - Example: <speak>The crater should have been twenty meters wide. It was ten. \
 <break time="0.5s"/> That gap is the whole story. <break time="1.0s"/> The warhead ...</speak>\
 """
@@ -300,10 +333,12 @@ The script opened with this hook. The listener is still waiting for its full pay
 {hook}
 --- end hook ---
 
-If this section closes a chapter (ends at a <break time="1.5s"/> boundary), you MAY end \
-that chapter with ONE short callback sentence reminding the listener the opening question \
-is still open ("Keep that restaurant in mind — we're getting there."). At most one \
-callback in this section. Skip it if the section ends mid-argument.
+If this section closes a chapter (ends at a <break time="1.5s"/> boundary), END that \
+chapter with ONE short callback reminding the listener the opening question is still open \
+— "Keep that restaurant in mind; we get there shortly." This is how a listener three \
+chapters deep in technical detail is kept until the payoff, so treat it as expected rather \
+than optional. Exactly one callback, and skip it only if this section ends mid-argument. \
+Vary the wording from any callback quoted above.
 """
 
 _CONTEXT_BLOCK = """\
@@ -630,7 +665,7 @@ def _rewrite_chunk(
     results: list[Path] = []
     for offset, p in enumerate(paragraphs):
         idx = start_index + offset          # 塊をまたいで連番になるようずらす
-        part_text = p["text"].strip()
+        part_text = ssml.merge_breaks(p["text"].strip())
         if idx == 1:                        # 台本全体の先頭。挨拶はここにだけ入る
             part_text = _with_opening(part_text)
         out = output_dir / f"{txt_path.stem}_part{idx:02d}.txt"

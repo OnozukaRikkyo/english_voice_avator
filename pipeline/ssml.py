@@ -44,6 +44,21 @@ def check_tags(text: str) -> str | None:
     return None
 
 
+def merge_breaks(text: str) -> str:
+    """隣り合う <break> を1つにまとめる（長いほうを残す）。
+
+    間の指定はプロンプトで禁じているが、モデルは塊の継ぎ目で重ねてしまう
+    （文末の 0.5s と話題の変わり目の 1.0s が並ぶ）。合成音声はそこで不自然に
+    長く止まる。決定論的に潰せるものをモデルに任せる理由がない。
+    """
+    def longest(m: "re.Match[str]") -> str:
+        secs = [float(x) for x in re.findall(r'time\s*=\s*"([\d.]+)s"', m.group(), re.I)]
+        return f'<break time="{max(secs):g}s"/>'
+
+    _TAGS = r'<break\s+time\s*=\s*"[\d.]+s"\s*/>'
+    return re.sub(rf'{_TAGS}(?:\s*{_TAGS})+', longest, text, flags=re.I)
+
+
 def unwrap(text: str) -> str:
     """<speak> の中身を返す。"""
     return _SPEAK_CLOSE.sub("", _SPEAK_OPEN.sub("", text.strip())).strip()

@@ -122,3 +122,16 @@ def test_break_variants_are_recognised(tag):
     body = ("This is one sentence. " * 60 + tag) * 4
     pieces = split(wrap(body), 2000)
     assert all(len(p) <= 2000 for p in pieces)
+
+
+def test_merge_breaks_keeps_the_longest():
+    """塊の継ぎ目で 0.5s と 1.0s が並ぶ。合成音声はそこで不自然に長く止まる。"""
+    from pipeline.ssml import merge_breaks
+    got = merge_breaks('a. <break time="0.5s"/><break time="1.0s"/> b. <break time="1.5s"/> c')
+    assert got == 'a. <break time="1s"/> b. <break time="1.5s"/> c'
+
+
+def test_merge_breaks_leaves_single_tags_alone():
+    from pipeline.ssml import merge_breaks
+    t = 'a. <break time="0.5s"/> b. <break time="1.0s"/> c'
+    assert merge_breaks(t) == t

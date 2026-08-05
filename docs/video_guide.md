@@ -111,7 +111,7 @@ HeyGen の入力上限は5,000字です。台本パートはこれを超える�
 台本の先頭には、毎回まったく同じ挨拶が自動で入ります。
 
 ```
-Hello everyone, and welcome. <break time="0.5s"/> I'm Bogdan Parkhomenko, and this is the beginning of a new journey. <break time="1.5s"/>
+Hello everyone, and welcome. <break time="0.5s"/> I'm Bogdan Parkhomenko. On this channel, I take one story from the news — a conflict, a market, a match, a breakthrough — and trace the system underneath it: who pays, who gains, and what breaks next. <break time="1.5s"/>
 ```
 
 AIには書かせていません。文言が回ごとにぶれないよう、`part01` の

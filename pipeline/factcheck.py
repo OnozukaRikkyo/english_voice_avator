@@ -33,7 +33,10 @@ league, a company and its market, an agency and its jurisdiction)
 - number: sums, statistics, capacities, distances, scores, casualty figures, market data
 - date and deadline, including regulation changes and their effective dates
 - named place, venue, or facility
-- direct causal or superlative claim ("the largest", "the first", "caused by")
+- direct causal or superlative claim ("the largest", "the first", "caused by") where the \
+source may only support correlation, an estimate, or one party's assertion
+- any statement carrying legal, medical, or financial exposure: an accusation of a crime, \
+a diagnosis or health claim, a solvency or fraud claim about a named company
 
 For each item give four fields, named here by the column they go in:
 - 該当箇所 (Claim): the exact statement as the script words it (short quote)
@@ -49,7 +52,13 @@ casualty figure, or a sum of money; Medium for dates and quantities that shift e
 Low for the rest
 
 Do NOT verify anything yourself and do NOT guess at answers — produce the checklist, \
-not the verdict. Do not skip items because they look obviously true.
+not the verdict. The checking is done by a human against primary sources; your job is to \
+make sure nothing that needs checking is missing from the list. Do not skip items because \
+they look obviously true.
+
+Rank a person's name paired with a title or command position as High every time, without \
+exception. It is the error an AI writing pipeline introduces most often and the one that \
+costs the programme most when it is wrong.
 
 # Language
 

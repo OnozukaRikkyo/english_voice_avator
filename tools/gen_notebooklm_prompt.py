@@ -76,6 +76,10 @@ suggests". Never present a prediction, an estimate, or one party's claim as sett
    - Attribute every claim made by an interested party (a government, a company, a club, \
 a campaign) to that party by name, and never state an accusation against a named person \
 or organisation without saying who alleges it.
+   - NEVER say "our sources", "we have learned", or "sources tell us". The speakers are \
+reading published material, not working private informants, and a downstream script \
+repeats these phrases verbatim. Say what is actually true instead: "open-source reporting \
+indicates", "analysts tracking this say", "according to reporting by ...".
    - Say key figures, dates, and full names explicitly aloud at least once — spoken \
 numbers and names are what survives transcription.
    - Keep the tone analytical and even-handed: no triumphant, dehumanising, or \
