@@ -69,3 +69,23 @@ def test_non_integer_index_is_rejected():
 def test_missing_index_is_rejected_without_crashing():
     """index キーが無い要素で KeyError を投げず、理由を返すこと。"""
     assert _validate([{"text": part(1)["text"]}], SRC) is not None
+
+
+def test_malformed_break_tag_is_rejected():
+    """実際に起きた障害: `<break time="0.5s/>`（閉じ引用符欠落）が最終台本まで残った。
+
+    形の崩れたタグは「正しい break の数を数える」検証には一致しないため、
+    タグ様のもの全体を白リストで見る。
+    """
+    body = "x" * 3000 + '<break time="0.5s/> ' + "y" * 2000
+    broken = [{"index": 1, "text": f"<speak>{body}</speak>"}]
+    problem = _validate(broken, SRC)
+    assert problem is not None and "タグ" in problem
+
+
+def test_unknown_tag_is_rejected():
+    """HeyGen が解釈しないタグは読み上げられてしまう。speak と break 以外は通さない。"""
+    body = "x" * 3000 + "<emphasis>big</emphasis>" + "y" * 2000
+    bad = [{"index": 1, "text": f"<speak>{body}</speak>"}]
+    problem = _validate(bad, SRC)
+    assert problem is not None and "タグ" in problem

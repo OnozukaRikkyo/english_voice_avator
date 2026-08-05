@@ -22,6 +22,28 @@ _SPEAK_CLOSE = re.compile(r"\s*</speak>\s*$", re.I)
 _WRAPPER = "<speak>\n\n</speak>"   # 包み直す分の文字数
 
 
+# 台本に許すタグは <speak> と <break time="Xs"/> だけ。HeyGen が他のタグを
+# 解釈する保証がなく、解釈されないタグはそのまま読み上げられる。
+# 実害の例: `<break time="0.5s/>`（閉じ引用符欠落）が検証を通過して
+# 最終台本まで残った。形の崩れたタグは _BREAK にも一致しないため、
+# 「正しい break を数える」検証では見つけられない。タグ様のもの全体を見る。
+_TAG = re.compile(r"<[^>]*>")
+_VALID_TAG = re.compile(r'^(</?speak>|<break\s+time\s*=\s*"[\d.]+s"\s*/>)$', re.I)
+
+
+def check_tags(text: str) -> str | None:
+    """SSML として不正なタグがあれば説明を、無ければ None を返す。"""
+    for m in _TAG.finditer(text):
+        if not _VALID_TAG.match(m.group(0)):
+            return f"許可されないタグまたは壊れたタグ: {m.group(0)!r}"
+    # 「<」で始まって「>」に至らないタグの断片（出力の途中切れで起きる）
+    tail = _TAG.sub("", text)
+    if "<" in tail:
+        frag = tail[tail.index("<"):][:40]
+        return f"閉じられていないタグの断片: {frag!r}"
+    return None
+
+
 def unwrap(text: str) -> str:
     """<speak> の中身を返す。"""
     return _SPEAK_CLOSE.sub("", _SPEAK_OPEN.sub("", text.strip())).strip()

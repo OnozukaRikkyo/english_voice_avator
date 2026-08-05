@@ -54,12 +54,32 @@ academic sources). Use those exact terms and phrasings in your explanation.
 
 3. Include Core Instructions with domain-specific guidance on:
    - Which types of terms require verification and which specific authoritative \
-English-language websites to use (provide actual site names and URLs where appropriate, \
-e.g., isw.org for conflict, imf.org for economics, official vendor sites for technology). \
-Instruct NotebookLM to search these sites to confirm the correct English usage of each term.
+English-language websites to use (provide actual site names and URLs where appropriate — \
+e.g., isw.org for conflict, imf.org for economics, the sport's governing body and league \
+records for sport, peer-reviewed journals for science, official vendor sites for \
+technology). Instruct NotebookLM to search these sites to confirm the correct English \
+usage of each term.
    - How to find novel analytical insights not explicit in the sources, \
 with 2 concrete examples appropriate to this specific domain
    - Tone and script structure suited to this domain and audience
+
+4. Include Editorial Discipline instructions — REQUIRED in every generated prompt, \
+whatever the domain. The audio this prompt produces is the single source for a downstream \
+news-commentary pipeline, so anything stated as fact here will be repeated as fact later. \
+The generated prompt must instruct NotebookLM to:
+   - State today's date as the editorial date and convert every relative date in the \
+sources ("last week", "先月") into an absolute date when speaking.
+   - Classify each important statement internally as verified fact, official claim, \
+unverified report, or analytical inference — and make the class audible with phrases such \
+as "according to...", "reportedly", "there is no independent confirmation", "this \
+suggests". Never present a prediction, an estimate, or one party's claim as settled fact.
+   - Attribute every claim made by an interested party (a government, a company, a club, \
+a campaign) to that party by name, and never state an accusation against a named person \
+or organisation without saying who alleges it.
+   - Say key figures, dates, and full names explicitly aloud at least once — spoken \
+numbers and names are what survives transcription.
+   - Keep the tone analytical and even-handed: no triumphant, dehumanising, or \
+promotional language about any side, whatever the domain.
 
 Write it as one cohesive prompt — do not label it as sections or add structural commentary. \
 The reader will paste this directly into NotebookLM.

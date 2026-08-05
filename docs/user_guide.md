@@ -44,7 +44,7 @@ cp your_audio.m4a data/inbox/    # 1. 置く
 ```
 
 **`./run.sh` は引数なしで最初から最後まで通します。**
-`convert → transcribe → rewrite → review → concat_narration → translate → heygen → concat_video` が順に動きます。
+`convert → transcribe → rewrite → review → concat_narration → factcheck → translate → heygen → concat_video` が順に動きます。
 プロジェクト名は音声ファイル名から自動で付きます。
 入力音声は英語である前提です。
 
@@ -66,6 +66,7 @@ data/{プロジェクト名}/
   translation/*_ja.txt     ← その日本語訳
   video/*.mp4              ← 結合済みのアバター動画
   draft/parts/*_review.md  ← 台本のどこを報道基準で直したかの記録
+  narration/*_factcheck.md ← 配信前に一次ソースと照合すべき項目の表
 ```
 
 ### 台本の点検（review 工程）
@@ -82,6 +83,16 @@ data/{プロジェクト名}/
 録音前にここだけ読めば済みます。指摘が high（裏付け無し・断定化・
 一方的な引用）で出ていたら、元の音声まで戻って確認してください。
 指摘が1件も無ければ台本には触らず、そのまま複製します。
+
+### 配信前の照合リスト（factcheck 工程）
+
+review は台本を**文字起こしと**突き合わせますが、素材そのものが
+誤っていれば通してしまいます。factcheck は完成した台本から、
+**現実と**照合すべき項目（人物と役職の対応・数値・日付・固有名詞）を
+リスク順の表 `narration/*_factcheck.md` に書き出します。
+検証自体は行いません — 配信前に high の行だけでも一次ソースと
+照合してください。実在の人物・事件を扱う以上、誤り1つで番組全体の
+信頼が崩れます。
 
 各工程は出力があるとスキップします。途中で止まっても `./run.sh` を
 もう一度実行すれば続きから進みます。作り直すときは `--force` が要ります。
@@ -143,6 +154,7 @@ step_convert.sh               音声形式の変換
 step_transcribe.sh            文字起こし
 step_rewrite.sh               ナレーション台本の生成
 step_review.sh                台本を報道基準で点検して修正
+step_factcheck.sh             配信前に照合すべき項目の表を生成
 step_concat_narration.sh      台本パートの結合
 step_translate.sh             日本語訳
 step_heygen.sh                アバター動画の生成

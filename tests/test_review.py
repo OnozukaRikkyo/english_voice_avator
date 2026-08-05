@@ -131,3 +131,8 @@ def test_orphaned_outputs_are_dropped(tmp_path):
 
     assert sorted(p.name for p in dst.glob("*.txt")) == ["ep_part01.txt", "ep_part02.txt"]
     assert not (src / "ep_part03_review.md").exists()
+
+
+def test_malformed_tag_in_revision_is_rejected():
+    body = "x" * 2900 + '<break time="0.5s/>'
+    assert "タグ" in review._validate(result(f"<speak>{body}</speak>"), DRAFT)

@@ -16,6 +16,7 @@ Japanese translation, and a HeyGen avatar video.
   transcript/         → [rewrite         ] → draft/parts/
   draft/parts/        → [review          ] → narration/parts/
   narration/parts/    → [concat_narration] → narration/   ← 出力1
+  narration/_full.txt → [factcheck       ] → narration/_factcheck.md
   narration/_full.txt → [translate       ] → translation/   ← 出力2
   narration/parts/    → [heygen          ] → video/parts/
   video/parts/        → [concat_video    ] → video/
@@ -74,6 +75,7 @@ enforced by `tools/check_design.py`.
 | `rewrite` | `transcript/` | `draft/` | `pipeline/rewrite.py` | active |
 | `review` | `draft/` | `narration/` | `pipeline/review.py` | active |
 | `concat_narration` | `narration/` | `narration/` | `tools/concat_narration.py` | active |
+| `factcheck` | `narration/` | `narration/` | `pipeline/factcheck.py` | active |
 | `translate` | `narration/` | `translation/` | `pipeline/translate.py` | active |
 | `heygen` | `narration/` | `video/` | `pipeline/heygen.py` | active |
 | `concat_video` | `video/` | `video/` | `tools/concat_video.py` | active |

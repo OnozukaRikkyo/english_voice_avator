@@ -74,6 +74,9 @@ Avoid a uniform cadence where every sentence is a stately pronouncement.
 mind" — use almost never. Start the new topic with its own strongest fact instead.
 1.8 NO EMPTY INTENSIFIERS. Cut "truly", "absolutely", "profound", "staggering", "make no \
 mistake", "it is important to understand that". Let the numbers carry the weight.
+1.9 NO ECHOES. Never reuse a distinctive phrase in adjacent sentences, and never run \
+parallel-structure repetition ("You force them into impossible choices. You force the \
+government to make agonizing choices."). Say it once, then vary or move on.
 
 # 2. FIDELITY — WHAT MUST SURVIVE
 2.1 COVER EVERY topic, event, location, number, date, name, and analytical point in the \
@@ -85,8 +88,9 @@ padding. The per-block length in section 4 governs ONE block, never the whole ou
 2.3 PRESERVE ALL HEDGING. Where the source says "may", "reportedly", "appears to", "some \
 analysts believe", or "unconfirmed", keep that uncertainty in English. Never promote \
 speculation into stated fact.
-2.4 PREFER THE SOURCE'S CONCRETE NUMBERS over vague magnitude words: "a 10-meter crater", \
-"1.2 billion dollars", "since March 2026" — not "a massive crater", "a huge sum", "recently".
+2.4 PREFER THE SOURCE'S CONCRETE NUMBERS over vague magnitude words: "a ten-meter \
+crater", "one point two billion dollars", "an eighty-million transfer fee", "since March \
+twenty twenty-six" — not "a massive crater", "a huge sum", "a record fee", "recently".
 2.5 Analysis is welcome, but it must be a NEW point — the underlying intent, mechanism, \
 incentive, or constraint that the speakers did not state. Restating their point in more \
 impressive language is not analysis.
@@ -127,14 +131,21 @@ listener a new topic has started. A block is NOT a separate segment: the whole o
 inside ONE <speak> wrapper and blocks are divided by that break tag alone. Never open a \
 second <speak>. Do NOT write section headings, titles, labels, chapter markers, speaker \
 names, or stage directions — every character you output is read aloud by a synthetic voice.
-4.5 A spoken transition between blocks, if used at all, is under six words.
+4.5 SIGNPOST THE CHAPTERS. Topic blocks group into a few larger chapters (a finance \
+story: the deal, the balance sheet, the fallout; a title race: the table, the tactics, the \
+run-in). At each CHAPTER boundary, give the listener one or two spoken sentences of \
+orientation — where we have been, where we go next: "That's the money side. Now, the \
+people it lands on." The listener has no headings; these sentences are the map.
+4.6 Between ordinary blocks inside a chapter, a transition is under six words or absent.
 
 # 5. CLARITY
-5.1 Gloss every technical or military term on FIRST use with one clause of plain English, \
-then use it freely: "a hit-to-kill interceptor — it destroys the target by ramming it, not \
-by exploding nearby". One gloss per term, never repeated.
-5.2 Expand every acronym on first use: OSINT (open-source intelligence), FPV \
-(first-person-view) drone, PAC-3 MSE.
+5.1 Gloss every technical term of the field on FIRST use with one clause of plain \
+English, then use it freely: "a hit-to-kill interceptor — it destroys the target by \
+ramming it"; "expected goals — a measure of chance quality, not of goals actually scored"; \
+"loan-loss provisions — money a bank sets aside for loans it expects to go bad". One gloss \
+per term, never repeated.
+5.2 Expand every acronym on first use, whatever the field: OSINT (open-source \
+intelligence), VAR (video assistant referee), IPO (initial public offering).
 5.3 Use the exact, globally recognised English spellings and designations of that field's \
 authoritative sources — for people, organisations, places, products, systems, designations, \
 and metrics. Not informal or approximate terms.
@@ -149,11 +160,15 @@ cannot re-read a sentence or look at anything.
 "pictured here", "on screen".
 6.2 ONE IDEA PER SENTENCE, subject early. Avoid stacked subordinate clauses and long \
 parenthetical asides — the ear loses them.
-6.3 ATTRIBUTION COMES FIRST, as it does in broadcast news: "According to Ukraine's General \
-Staff, ..." — not the claim followed by a trailing "..., according to ...".
-6.4 Write numbers and symbols so they are spoken correctly and held by ear: "seventeen \
-kilometers", "1.2 billion dollars", "thirty percent". No bare digits with unit symbols, no \
-"km", "%", "$", "approx.". At most two figures in one sentence; split the rest out.
+6.3 ATTRIBUTION COMES FIRST, as it does in broadcast news: "According to the company's \
+audited accounts, ...", "According to the league's disciplinary panel, ..." — never the \
+claim followed by a trailing "..., according to ...".
+6.4 SPELL OUT EVERY NUMBER IN WORDS. The synthesizer misreads digits, so quantities, \
+years, scores and sums are written as they are spoken: "one hundred seventy-six thousand \
+square meters", "twenty twenty-five", "eighty point eight billion rubles", "two-nil". \
+No digits, no unit symbols ("km", "%", "$"), no "approx.". The ONLY exception is an \
+alphanumeric designation whose official form contains digits (PAC-3, Boeing 747, Formula 1) \
+— keep those exactly as designated. At most two figures in one sentence; split the rest out.
 6.5 Say a name in full on first mention with its role ("Poland's operational command"), then \
 use the short form. Never introduce an unexplained name and leave it hanging.
 6.6 Contractions are fine and natural ("it's", "that's"). Written-only constructions \
@@ -163,9 +178,17 @@ use the short form. Never introduce an unexplained name and leave it hanging.
 7.1 STAKES BEFORE MECHANICS. One sentence on why it matters, then how it works.
 7.2 Give the two or three highest-stakes claims extra room and a hard landing sentence. \
 Move fast through the supporting detail.
-7.3 Rhetorical questions are allowed but rare — at most one per topic block, and only when \
-the script answers it immediately.
-7.4 Trust the audience. Do not spell out an inference an attentive viewer can make.
+7.3 BREAK UP DENSE RUNS. After three or more consecutive explanatory sentences, give the \
+ear a beat: one short rhetorical question the script answers immediately ("So why does \
+this matter to a bank hundreds of miles away?"). At most one question per topic block.
+7.4 Trust the audience. Do not spell out an inference an attentive listener can make.
+7.5 THE HOST IS PRESENT. This is one person talking to a listener, not a document read \
+aloud. Once or twice per chapter, the narrator reacts in first person — "Here's the part \
+that genuinely surprised me", "When I first saw that figure, I assumed a typo". A reaction \
+is the narrator's own voice; it never alters a fact and never drops a hedge.
+7.6 SHARE THE REASONING. In analytical passages, think alongside the listener with "we" — \
+"if we follow the money one step further..." — while facts keep their attribution and \
+speculation keeps its hedging.
 
 # 8. TONE
 Confident, analytical, slightly urgent — a sharp explanatory YouTube essayist, not a dramatic \
@@ -217,7 +240,8 @@ _POSITION = {
     "first": (
         "This is the OPENING section. Its first two sentences are the hook. Use exactly ONE "
         "of these three forms: (a) a stark numeric contradiction — \"The crater should have "
-        "been twenty meters wide. It was ten.\"; (b) a direct question this video answers; "
+        "been twenty meters wide. It was ten.\" / \"The club posted record revenue. It cannot "
+        "pay January's wages.\"; (b) a direct question this video answers; "
         "(c) a stakes statement naming who is affected and how soon. "
         "No preamble, no scene-setting, no throat-clearing before the hook. "
         "Do NOT write a conclusion or sign-off — the script continues after this section."
@@ -231,10 +255,11 @@ _POSITION = {
     ),
     "last": (
         "This is the FINAL section. Do NOT write a new opening hook, and do NOT walk back "
-        "through what earlier sections covered. Continue from what came before and close the "
+        "through what earlier sections covered. Continue from what came before, PAY OFF the "
+        "opening tease explicitly, and close the "
         "whole script with ONE forward-looking thought — what to watch next — followed by a "
         "single genuine open question the audience can argue about in the comments. "
-        "Not a moralising line about the true nature of modern warfare."
+        "Not a moralising line about 'the true nature' of war, sport, or capitalism."
     ),
 }
 
@@ -252,6 +277,23 @@ Cover it fully; do not reach forward or backward into other sections.
 # Output Format
 Return a JSON array with a single element containing this section's narration:
 - {{ "index": 1, "text": <this section in SSML: wrapped in <speak>...</speak> with <break> tags> }}
+"""
+
+# 冒頭のフック（開いた問い）を後続の塊にも渡す。塊は自分の担当範囲しか見えないため、
+# これが無いと「あの話に戻る前に…」という引き戻し（re-hook）を書けず、
+# 冒頭で開いた期待が中盤で放置される。
+_HOOK_BLOCK = """\
+# The Opening Tease — Keep It Alive
+The script opened with this hook. The listener is still waiting for its full payoff:
+
+--- opening hook ---
+{hook}
+--- end hook ---
+
+If this section closes a chapter (ends at a <break time="1.5s"/> boundary), you MAY end \
+that chapter with ONE short callback sentence reminding the listener the opening question \
+is still open ("Keep that restaurant in mind — we're getting there."). At most one \
+callback in this section. Skip it if the section ends mid-argument.
 """
 
 _CONTEXT_BLOCK = """\
@@ -340,6 +382,9 @@ def _validate(paragraphs: list[dict], src_chars: int) -> str | None:
             return f"part {idx:02d} が </speak> で終わっていません（末尾: {t[-40:]!r}）"
         if t.count("<speak>") != 1:
             return f"part {idx:02d} の <speak> が {t.count('<speak>')} 個あります"
+        bad = ssml.check_tags(t)
+        if bad:
+            return f"part {idx:02d}: {bad}"
 
     total = sum(len((p.get("text") or "").strip()) for p in paragraphs)
     if total < src_chars * _MIN_RATIO:
@@ -387,6 +432,15 @@ def _save_state(path: Path, *, chunks: int, src_chars: int, done: int, parts: li
         "chunks": chunks, "src_chars": src_chars, "done": done,
         "parts": [p.name for p in parts],
     }, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _hook_text(part1: Path) -> str:
+    """part01 から冒頭のフックを取り出す（機械挿入した挨拶は除く）。"""
+    body = ssml.unwrap(part1.read_text(encoding="utf-8"))
+    opening = NARRATION_OPENING.strip()
+    if opening and body.startswith(opening):
+        body = body[len(opening):].lstrip()
+    return body[:600]
 
 
 def _with_opening(part_text: str) -> str:
@@ -460,6 +514,7 @@ def rewrite_file(
         results: list[Path] = []
         done = 0
         tail = ""            # 直前の塊の台本の末尾。続きとして書かせるために渡す
+        hook = ""            # 冒頭のフック。中盤の引き戻しと最終章の回収に使う
         if state:
             results = [output_dir / name for name in state["parts"]]
             missing = [p.name for p in results if not p.exists()]
@@ -469,6 +524,7 @@ def rewrite_file(
             else:
                 done = state["done"]
                 tail = results[-1].read_text(encoding="utf-8")[-_CONTEXT_CHARS:]
+                hook = _hook_text(results[0])
                 print(f"  [resume] 前回は {done}/{len(chunks)} 塊まで完了しています。続きから作ります")
 
         for i, chunk in enumerate(chunks, 1):
@@ -478,10 +534,13 @@ def rewrite_file(
             print(f"  chunk {i}/{len(chunks)} ({len(chunk):,}字, {where})")
             got = _rewrite_chunk(chunk, txt_path, output_dir, model,
                                  start_index=len(results) + 1,
-                                 position=where, index=i, total=len(chunks), tail=tail)
+                                 position=where, index=i, total=len(chunks),
+                                 tail=tail, hook=hook)
             results.extend(got)
             if got:
                 tail = got[-1].read_text(encoding="utf-8")[-_CONTEXT_CHARS:]
+                if not hook:
+                    hook = _hook_text(results[0])
             # 塊を1つ終えるごとに記録する。ここで落ちても次回はこの続きから。
             _save_state(spath, chunks=len(chunks), src_chars=len(text), done=i, parts=results)
 
@@ -495,7 +554,7 @@ def rewrite_file(
 
 def _rewrite_chunk(
     text: str, txt_path: Path, output_dir: Path, model: str, *, start_index: int,
-    position: str = "", index: int = 1, total: int = 1, tail: str = "",
+    position: str = "", index: int = 1, total: int = 1, tail: str = "", hook: str = "",
 ) -> list[Path]:
     """transcript の1塊を台本にする。塊は分割せず1本で書かせる。
 
@@ -517,9 +576,10 @@ def _rewrite_chunk(
     }
 
     if position:
+        context = (_HOOK_BLOCK.format(hook=hook) if hook and position != "first" else "")
+        context += _CONTEXT_BLOCK.format(tail=tail) if tail else ""
         prompt = _PROMPT_CONTINUATION.format(
-            index=index, total=total, position=_POSITION[position],
-            context=_CONTEXT_BLOCK.format(tail=tail) if tail else "",
+            index=index, total=total, position=_POSITION[position], context=context,
         ) + "\n\n" + text
     else:
         prompt = _build_prompt(max_chars, text)

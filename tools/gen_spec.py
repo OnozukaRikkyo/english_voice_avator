@@ -46,6 +46,7 @@ _DETAIL = {
     "rewrite":          (None, "draft/parts/"),
     "review":           ("draft/parts/", "narration/parts/"),
     "concat_narration": ("narration/parts/", None),
+    "factcheck":        ("narration/_full.txt", "narration/_factcheck.md"),
     "translate":        ("narration/_full.txt", None),
     "heygen":           ("narration/parts/", "video/parts/"),
     "concat_video":     ("video/parts/", None),

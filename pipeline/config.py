@@ -224,6 +224,7 @@ STEP_IO: dict[str, tuple[str, str]] = {
     "rewrite":          ("transcript",  "draft"),
     "review":           ("draft",       "narration"),
     "concat_narration": ("narration",   "narration"),
+    "factcheck":        ("narration",   "narration"),
     "translate":        ("narration",   "translation"),
     "heygen":           ("narration",   "video"),
     "concat_video":     ("video",       "video"),

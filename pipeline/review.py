@@ -19,7 +19,7 @@ rewrite が書いた台本は読み物としては整っていても、報道と
 import json
 from pathlib import Path
 
-from . import artifact, llm
+from . import artifact, llm, ssml
 from .config import (
     REVIEW_MODEL, REWRITE_MAX_CHARS,
     stage_dir, parts_dir, all_projects, STEP_IO,
@@ -66,6 +66,12 @@ that the script dropped.
 gloss on first use.
 - REDUNDANCY: the same conclusion stated more than once in different words, or an \
 implication chain ("which means ... which in turn means ..."). Cut the repeats.
+- INCONSISTENT NAME: the same person, place, or organisation spelled two ways in the \
+script. Pick the form the transcript supports and use it throughout.
+- DIGITS: a quantity, year, score, or sum written in digits ("176,000", "2025"). The \
+synthesizer misreads digits — rewrite it as spoken words ("one hundred seventy-six \
+thousand", "twenty twenty-five"). Alphanumeric designations whose official form contains \
+digits (PAC-3, Boeing 747, Formula 1) keep that form.
 
 LOW — note it, fix only if the fix is a clean deletion:
 - Filler, empty intensifiers ("truly", "absolutely", "make no mistake"), padding.
@@ -76,8 +82,8 @@ LOW — note it, fix only if the fix is a clean deletion:
 - MINIMAL EDITS. Change only the words that carry the problem. Everything else must survive \
 character for character.
 - Fix by ATTRIBUTING or HEDGING, not by deleting, whenever the claim itself is in the \
-transcript: "Russian state media said the fire was contained", "Ukrainian officials \
-reportedly put the figure at ...".
+transcript: "state media said the fire was contained", "the club reportedly put the fee \
+at ...", "officials put the figure at ...".
 - DELETE a claim only when it is absent from the transcript entirely. Do not invent a \
 source, a date, or a number to prop it up.
 - Do NOT add new facts, new analysis, new examples, or new transitions.
@@ -179,6 +185,9 @@ def _validate(result: dict, draft: str) -> str | None:
         return "revised が空です"
     if revised.count("<speak>") != 1 or not revised.endswith("</speak>"):
         return f"revised が SSML として壊れています（末尾: {revised[-40:]!r}）"
+    bad = ssml.check_tags(revised)
+    if bad:
+        return f"revised: {bad}"
     if len(revised) < len(draft) * _MIN_RATIO:
         return (f"revised {len(revised):,}字 が draft {len(draft):,}字 の "
                 f"{len(revised) / len(draft) * 100:.0f}%しかありません"

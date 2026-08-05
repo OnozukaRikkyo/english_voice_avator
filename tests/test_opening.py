@@ -56,3 +56,15 @@ def test_opening_survives_heygen_splitting():
     assert len(pieces) > 1
     assert ssml.unwrap(pieces[0]).startswith(NARRATION_OPENING.strip())
     assert all(len(p) <= 5000 for p in pieces)
+
+
+def test_hook_extraction_strips_the_greeting(tmp_path, monkeypatch):
+    """後続チャンクへ渡すフックは台本の実質の冒頭であって、定型の挨拶ではない。"""
+    from pipeline import rewrite
+    monkeypatch.setattr(rewrite, "NARRATION_OPENING", "Hello everyone.")
+    p = tmp_path / "p1.txt"
+    p.write_text("<speak>\nHello everyone.\n\nThe hook itself. More text.\n</speak>",
+                 encoding="utf-8")
+    hook = rewrite._hook_text(p)
+    assert hook.startswith("The hook itself.")
+    assert "Hello everyone" not in hook
