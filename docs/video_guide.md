@@ -107,12 +107,63 @@ HeyGen の入力上限は5,000字です。台本パートはこれを超える�
 
 ---
 
+## 末尾のノイズ（自動で直します）
+
+台本のパートが `<break time="1.5s"/>` で終わっていれば、動画もその秒数だけ
+無音で終わるはずです。ところが合成音声が、その「間」を台本に無い音で
+埋めることがあります。実例では1.5秒の指定に対し、1.2秒ぶんの意味を成さない
+発話が入りました。台本にも映像にも異常が出ないため、公開して初めて気づきます。
+
+動画を作った直後に、台本が指定した無音と実際の波形を突き合わせて検査します。
+外れていればその場で消音します。
+
+```
+  [repair] ..._part03.mp4: 末尾の無音が 0.04秒しかありません（台本の指定は 1.0秒） → 終端 1.12秒を消音しました
+```
+
+消す長さは固定ではありません。末尾から遡って**最後に音が途切れた位置**を
+波形から探し、そこから終端までを消します。台本外の音は最後の一文が
+読み終わったあとに始まるので、この境目より前の本物の発話は削られません。
+途切れが見つからないときは、台本にある文を読み続けている可能性があるため
+**消さずに警告だけ**します。
+
+切り落とさず消音するのは、その区間が台本の設計上の「間」だからです
+（1.5秒＝章の転換、1.0秒＝段落）。切ると結合後の本編で章と章が
+息継ぎなしで繋がります。消音のあいだアバターは無音のまま少し動きますが、
+話の合間の自然な動きに見える程度です。
+
+検査を入れる前に作った動画は、あとから点検・修復できます。
+直したパートがあれば結合もやり直します。
+
+```bash
+./tool_fix_video_tail.sh --check      # 直さず報告だけ
+./tool_fix_video_tail.sh              # 直して、結合もやり直す
+```
+
+---
+
+## 特定のパートだけ作り直す
+
+消音でも直らないときや、表情・間が気に入らないときは、そのパートだけを
+作り直せます。作り直したあとの結合まで自動で行います。
+
+```bash
+./tool_regen_video_parts.sh part01           # 1本
+./tool_regen_video_parts.sh part01 part04    # 複数
+./tool_regen_video_parts.sh 01 --dry-run     # 対象の確認だけ
+```
+
+`--force` は全パートを作り直すため、20分の動画なら $20 前後を捨てることに
+なります。こちらは指定した本数ぶんしか課金されません。
+
+---
+
 ## 冒頭の挨拶
 
 台本の先頭には、毎回まったく同じ挨拶が自動で入ります。
 
 ```
-Hello everyone, and welcome. <break time="0.5s"/> I'm Bogdan Parkhomenko. On this channel, I take one story from the news — a conflict, a market, a match, a breakthrough — and trace the system underneath it: who pays, who gains, and what breaks next. <break time="1.5s"/>
+Hello everyone, and welcome back. <break time="0.5s"/> I'm Bogdan Parkhomenko. On this channel, I take one story from the news — a conflict, a market, a match, a breakthrough — and trace the system underneath it: who pays, who gains, and what breaks next. <break time="1.5s"/>
 ```
 
 AIには書かせていません。文言が回ごとにぶれないよう、`part01` の

@@ -178,6 +178,8 @@ step_concat_video.sh          動画パートの結合
 tool_llm_check.sh             モデルとAPIキーの確認
 tool_heygen_consent.sh        HeyGen アバターの同意リンク取得
 tool_heygen_test.sh           設定中のアバターと音声を短い文で1本確認
+tool_fix_video_tail.sh        動画末尾のノイズを点検して消音する
+tool_regen_video_parts.sh     指定したパートだけ作り直して結合し直す
 tool_test_caption.sh          HeyGen 字幕の挙動テスト（調査済み・記録用）
 tool_investigate_caption.sh   HeyGen 字幕の実証調査（調査済み・記録用）
 tool_test.sh                  自動テスト（APIを呼ばない）
