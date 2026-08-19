@@ -140,6 +140,8 @@ Per-run override without editing config:
 |----------|-------|
 | `REWRITE_MAX_CHARS` | `7000` |
 | `HEYGEN_RATIO` | `16:9` |
+| `HEYGEN_RESOLUTION` | `4k` |
+| `HEYGEN_ENGINE` | `avatar_iii` |
 
 ## Environment
 

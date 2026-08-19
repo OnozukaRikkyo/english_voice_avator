@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT))
 from pipeline.config import (
     STAGES, STAGE_LABELS, STEP_IO,
     TRANSCRIBE_MODEL, REWRITE_MODEL, REVIEW_MODEL, TRANSLATE_MODEL,
-    REWRITE_MAX_CHARS, HEYGEN_RATIO,
+    REWRITE_MAX_CHARS, HEYGEN_RATIO, HEYGEN_RESOLUTION, HEYGEN_ENGINE,
 )
 from run_pipeline import ALL_STEPS  # 実行される工程だけ。残りは保留中。
 
@@ -219,6 +219,8 @@ Per-run override without editing config:
 |----------|-------|
 | `REWRITE_MAX_CHARS` | `{REWRITE_MAX_CHARS}` |
 | `HEYGEN_RATIO` | `{HEYGEN_RATIO}` |
+| `HEYGEN_RESOLUTION` | `{HEYGEN_RESOLUTION}` |
+| `HEYGEN_ENGINE` | `{HEYGEN_ENGINE}` |
 
 ## Environment
 

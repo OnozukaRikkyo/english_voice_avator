@@ -209,6 +209,32 @@ HEYGEN_AVATAR_ID = os.environ.get("HEYGEN_AVATAR_ID", "")
 HEYGEN_VOICE_ID  = os.environ.get("HEYGEN_VOICE_ID", "")
 HEYGEN_RATIO     = "16:9"
 
+# ── HeyGen v3 (POST /v3/videos) ───────────────────────────────────────────────
+# v2（/v2/video/generate）は 2026-10-31 で廃止される。API 応答の warning が
+# それを告げており、移行済み。旧 avatar_id / voice_id はそのまま通る（実測）。
+#
+# 解像度。v2 は dimension {width,height} だったが v3 は列挙値になった。
+# 4K を出せるのは Avatar III だけで、Avatar IV/V は標準解像度どまり。
+HEYGEN_RESOLUTION = os.environ.get("HEYGEN_RESOLUTION", "4k")
+
+# 描画エンジン。省略すると Avatar IV が選ばれるが、単価が 4 倍（$0.0167/秒 →
+# $0.0667/秒）になったうえ 4K が出せない。20分の動画で $20 が $80 になるため、
+# 明示的に Avatar III に固定する。
+# Avatar IV でしか使えないもの: motion_prompt（身振りの指示）、expressiveness。
+HEYGEN_ENGINE = os.environ.get("HEYGEN_ENGINE", "avatar_iii")
+
+# 読み上げの抑揚。クローン音声は ElevenLabs 系エンジンで動いており、v3 では
+# この設定が実際に効く（v2 では同じ値を送っても音声が 1 バイトも変わらなかった）。
+# 実測（同一文・同一音声で音声トラックの MD5 を比較、2026-08-19）:
+#   設定なし                      8.00秒  37dac3aa…
+#   stability 0.45 / style 0.30   6.61秒  8c620e87…   ← 既定（ニュース解説向け）
+#   stability 0.30 / style 0.60   7.24秒  e773ebd1…   ← 起伏は大きいが芝居がかる
+# stability を下げるほど、style を上げるほど感情の振れが大きくなる。
+# ニュース解説なので中庸に置く。聴き比べは voice_samples/ の mp3 で。
+HEYGEN_VOICE_STABILITY  = float(os.environ.get("HEYGEN_VOICE_STABILITY", "0.45"))
+HEYGEN_VOICE_STYLE      = float(os.environ.get("HEYGEN_VOICE_STYLE", "0.30"))
+HEYGEN_VOICE_SIMILARITY = float(os.environ.get("HEYGEN_VOICE_SIMILARITY", "0.80"))
+
 # ── Pipeline stages ───────────────────────────────────────────────────────────
 # Ordered list — the ORDER defines the pipeline sequence.
 # To insert a step: add the stage name here in the right position.

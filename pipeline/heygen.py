@@ -1,4 +1,14 @@
-"""Stage narration→video: text → HeyGen avatar video (mp4)."""
+"""Stage narration→video: text → HeyGen avatar video (mp4).
+
+HeyGen API v3（POST /v3/videos）を使う。v2 は 2026-10-31 で廃止される。
+v3 で変わったところ:
+  - payload が平坦になった（video_inputs[] の入れ子が無くなった）
+  - 解像度が dimension {width,height} → resolution の列挙値（"4k"/"1080p"/"720p"）
+  - engine を選べる。省略すると Avatar IV になり単価が 4 倍・4K 不可なので固定する
+  - voice_settings が実際に効く（v2 は同じ値を送っても音声が変わらなかった）
+  - 状態取得が /v1/video_status.get → GET /v3/videos/{id}
+台本の <break> は v3 でも解釈される（読み上げられない）ことを実測で確認済み。
+"""
 import os
 import time
 from pathlib import Path
@@ -9,6 +19,8 @@ from . import ssml
 from .config import (
     HEYGEN_API_KEY, HEYGEN_BASE_URL, HEYGEN_MAX_CHARS,
     HEYGEN_AVATAR_ID, HEYGEN_VOICE_ID, HEYGEN_RATIO,
+    HEYGEN_RESOLUTION, HEYGEN_ENGINE,
+    HEYGEN_VOICE_STABILITY, HEYGEN_VOICE_STYLE, HEYGEN_VOICE_SIMILARITY,
     stage_dir, parts_dir, all_projects, STEP_IO,
 )
 
@@ -18,14 +30,16 @@ _HEADERS = lambda: {"X-Api-Key": HEYGEN_API_KEY, "Accept": "application/json"}
 
 
 def upload_audio(mp3_path: Path) -> str:
+    """自前の音声を上げて asset_id を得る（HeyGen の TTS を使わない経路）。"""
     with open(mp3_path, "rb") as f:
         resp = requests.post(
-            f"{HEYGEN_BASE_URL}/v1/asset",
-            headers={"X-Api-Key": HEYGEN_API_KEY, "Content-Type": "audio/mp3"},
-            data=f, timeout=120,
+            f"{HEYGEN_BASE_URL}/v3/assets",
+            headers={"X-Api-Key": HEYGEN_API_KEY},
+            files={"file": (mp3_path.name, f, "audio/mpeg")}, timeout=120,
         )
     resp.raise_for_status()
-    asset_id = resp.json()["data"]["id"]
+    data = resp.json().get("data", resp.json())
+    asset_id = data["asset_id"]
     print(f"    uploaded audio asset: {asset_id}")
     return asset_id
 
@@ -37,26 +51,37 @@ def create_video(
     avatar_id: str = HEYGEN_AVATAR_ID,
     voice_id: str = HEYGEN_VOICE_ID,
     ratio: str = HEYGEN_RATIO,
+    resolution: str = HEYGEN_RESOLUTION,
+    engine: str = HEYGEN_ENGINE,
     title: str = "avatar_video",
 ) -> str:
-    voice_cfg = (
-        {"type": "audio", "audio_asset_id": audio_asset_id}
+    # 音声を自前で渡すときは script/voice_id を送ってはならない（排他）。
+    speech = (
+        {"audio_asset_id": audio_asset_id}
         if audio_asset_id
-        else {"type": "text", "voice_id": voice_id, "input_text": text}
+        else {
+            "script": text,
+            "voice_id": voice_id,
+            "voice_settings": {"engine_settings": {
+                "engine_type": "elevenlabs",
+                "stability": HEYGEN_VOICE_STABILITY,
+                "style": HEYGEN_VOICE_STYLE,
+                "similarity_boost": HEYGEN_VOICE_SIMILARITY,
+                "use_speaker_boost": True,
+            }},
+        }
     )
     payload = {
+        "type": "avatar",
+        "avatar_id": avatar_id,
         "title": title,
-        "video_inputs": [{
-            "character": {"type": "avatar", "avatar_id": avatar_id, "avatar_style": "normal"},
-            "voice": voice_cfg,
-            "background": {"type": "color", "value": "#008000"},
-        }],
+        "resolution": resolution,
         "aspect_ratio": ratio,
-        "caption": False,
-        "test": False,
+        "engine": {"type": engine},
+        **speech,
     }
     resp = requests.post(
-        f"{HEYGEN_BASE_URL}/v2/video/generate",
+        f"{HEYGEN_BASE_URL}/v3/videos",
         headers={**_HEADERS(), "Content-Type": "application/json"},
         json=payload, timeout=60,
     )
@@ -72,8 +97,8 @@ def wait_for_video(video_id: str, poll_interval: int = 3, timeout: int = 1800) -
     deadline = time.time() + timeout
     while time.time() < deadline:
         resp = requests.get(
-            f"{HEYGEN_BASE_URL}/v1/video_status.get",
-            headers=_HEADERS(), params={"video_id": video_id}, timeout=30,
+            f"{HEYGEN_BASE_URL}/v3/videos/{video_id}",
+            headers=_HEADERS(), timeout=30,
         )
         resp.raise_for_status()
         data = resp.json()["data"]
@@ -82,7 +107,8 @@ def wait_for_video(video_id: str, poll_interval: int = 3, timeout: int = 1800) -
         if status == "completed":
             return data["video_url"]
         if status == "failed":
-            raise RuntimeError(f"HeyGen video failed: {data.get('error')}")
+            raise RuntimeError(
+                f"HeyGen video failed: {data.get('failure_code')} — {data.get('failure_message')}")
         time.sleep(poll_interval)
     raise TimeoutError(f"HeyGen video {video_id} did not complete within {timeout}s")
 
@@ -101,8 +127,8 @@ def _validate_mp4(path: Path) -> bool:
 def download_raw(url: str, output_path: Path) -> Path:
     """Download the video as-is from HeyGen.
 
-    後処理は無い。`caption: False` で画面字幕が出ないことを実機で確認済み
-    （字幕を塗り潰す ffmpeg 処理を入れていたが、不要と分かったため削除した）。
+    後処理は無い。v3 は caption を送らなければ画面に字幕が焼き込まれない
+    （実機のフレームで確認済み。字幕は別ファイルで返るだけ）。
     """
     resp = requests.get(url, stream=True, timeout=300)
     resp.raise_for_status()
