@@ -10,6 +10,7 @@ REWRITE_MAX_CHARS in config.py は **transcript を何文字ずつモデルに�
 渡して1本の台本として繋げる。
 """
 import json
+import time
 from pathlib import Path
 
 from . import llm, ssml
@@ -337,6 +338,19 @@ Return a JSON array of narration segments for AI voice synthesis:
 
 _MAX_ATTEMPTS = 3
 
+# 作り直しの前に置く間（秒）。attempt 倍していくので 1秒 → 2秒。
+#
+# レート制限のためではない。実測した上限は 5,000 requests/min・2,000,000
+# tokens/min で、この工程は1塊あたり最大3回、しかも1回の生成に数十秒かかる。
+# 制限には桁で届かない。
+#
+# 狙いは即座に失敗が返る経路のほう。安全フィルタで候補が空になった場合や
+# 応答が JSON にならなかった場合は1秒とかからず戻ってくるので、間を置かないと
+# 3回の試行が続けざまに飛ぶ。相手側の一時的な不調なら、それは最も待つべき場面である。
+# 待ちが効かない失敗（壊れた SSML の作り直し）にとっては、生成時間に比べて
+# 無視できる長さでしかない。
+_RETRY_SLEEP = 1.0
+
 # 作り直しのときだけ足す。何が駄目だったかを伝えないと、モデルは同じ失敗を繰り返す。
 # 長さ不足を指摘したときに「もっと削る」方向へ行かないよう、直し方も添える。
 _RETRY_BLOCK = """
@@ -610,6 +624,7 @@ def _rewrite_chunk(
         if attempt == _MAX_ATTEMPTS:
             raise RuntimeError(f"{txt_path.name}: {problem}（{_MAX_ATTEMPTS}回試行）")
         print(f"    [retry {attempt}/{_MAX_ATTEMPTS - 1}] {problem}")
+        time.sleep(_RETRY_SLEEP * attempt)
 
     results: list[Path] = []
     for offset, p in enumerate(paragraphs):
