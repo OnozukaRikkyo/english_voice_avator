@@ -199,8 +199,9 @@ POLISH_ROUNDS = int(os.environ.get("POLISH_ROUNDS", "2"))
 NARRATION_CLOSING = os.environ.get(
     "NARRATION_CLOSING",
     "That's where I'll leave it. <break time=\"0.5s\"/> "
-    "I'm Bogdan Parkhomenko. If this way of reading the news is useful to you, "
-    "stay with the channel — there's another story underneath the next headline.",
+    "If you enjoyed this video, consider subscribing. <break time=\"0.5s\"/> "
+    "I'm Bogdan Parkhomenko, and I'll be back with another story "
+    "underneath the next headline.",
 )
 
 HEYGEN_BASE_URL  = "https://api.heygen.com"
